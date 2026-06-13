@@ -1,8 +1,16 @@
+from inputs.getUserPrompt import getUserPrompt
+
+
 class Inputs:
     @staticmethod
+    def get_user_prompt():
+        return getUserPrompt()
     def getInput(question, default=None, result_type=str):
         while True:
-            raw = input(f"{question} (default: {default}): ").strip()
+            prompt = f"{question}"
+            if default is not None:
+                prompt += f" (default: {default})"
+            raw = input(f"{prompt}: ").strip()
 
             if raw == "":
                 if default is not None:
@@ -32,7 +40,10 @@ class Inputs:
             for i, option in enumerate(options, start=1):
                 print(f"{i}. {option}")
 
-            raw = input(f"Enter your choice (default: {default}): ").strip()
+            prompt = "Enter your choice"
+            if default is not None:
+                prompt += f" (press Enter for default: {default})"
+            raw = input(f"{prompt}: ").strip()
 
             if raw == "" and default is not None:
                 return default
@@ -46,4 +57,5 @@ class Inputs:
             if 1 <= choice <= len(options):
                 return options[choice - 1]
 
-            print("Invalid choice. Try again.")
+            print("Invalid choice. Try again.")\
+    
