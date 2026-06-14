@@ -33,10 +33,11 @@ def main():
             else:
                 print("Processing your request... Please wait.")
                 print("output - >")
+                should_continue = True
                 response = openai_manager.request_llm_reply(user_input)
                 print(response)
                 # Here you can add logic to handle other commands
-
+    
     else:
         print("User config not validated. Follow below steps to validate it:")
         auth_service.create_config()
