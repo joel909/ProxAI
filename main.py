@@ -1,7 +1,9 @@
 import sys
 from auth_service import AuthService
+from inputs import BLUE, RED, RESET, YELLOW, LoadingSpinner
 from openAI_manager import OpenAIManager
 from storage.service import StorageService
+
 
 def main():
     print("Welcome to ProxAI CLI!")
@@ -21,7 +23,8 @@ def main():
         print("type /help for help!!")
         print("type /exit to exit the application!!")
         while True:
-            user_input = input("Enter your Prompt: ")
+            user_input = input(f"{RED}Enter your Prompt: {BLUE}")
+            print(RESET, end="")
             if user_input.lower() == "/exit":
                 print("Exiting ProxAI CLI. Goodbye!")
                 sys.exit(0)
@@ -31,10 +34,21 @@ def main():
                 print("/exit - Exit the application")
                 # Add more commands as needed
             else:
-                print("Processing your request... Please wait.")
-                print("output - >")
-                should_continue = True
-                response = openai_manager.request_llm_reply(user_input)
+                spinner = LoadingSpinner()
+                spinner.start()
+
+                def show_tool_call(tool_name):
+                    spinner.stop()
+                    print(f"{YELLOW}Tool requested: {tool_name}{RESET}")
+                    spinner.start()
+
+                try:
+                    response = openai_manager.request_llm_reply(
+                        user_input,
+                        on_tool_call=show_tool_call,
+                    )
+                finally:
+                    spinner.stop()
                 print(response)
                 # Here you can add logic to handle other commands
     

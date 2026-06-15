@@ -5,7 +5,7 @@ def create_temp_chat_history_file():
     temp_file = tempfile.NamedTemporaryFile(
         mode="w",
         prefix="proxai_chat_",
-        suffix=".txt",
+        suffix=".json",
         delete=False,
     )
     temp_file.close()

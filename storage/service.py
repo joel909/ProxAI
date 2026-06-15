@@ -5,11 +5,6 @@ from .create_temp_chat_history_file import create_temp_chat_history_file
 from .read_chat_history import read_chat_history
 from .store_session_info import store_session_info
 
-USER_CHAT_TAG = "<----user---->"
-ASSISTANT_CHAT_TAG = "<----assistant---->"
-TOOL_RESPONSE_CHAT_TAG = "<----tool_response---->"
-
-
 class StorageService:
     def __init__(self):
         self.project_root = Path(__file__).resolve().parents[1]
@@ -49,21 +44,54 @@ class StorageService:
 
 
 def record_chat_history(temp_file_name, operator, data):
-    operator_tags = {
-        "user": USER_CHAT_TAG,
-        "assistant": ASSISTANT_CHAT_TAG,
-        "tool_response": TOOL_RESPONSE_CHAT_TAG,
-        "model": ASSISTANT_CHAT_TAG,
+    operator_roles = {
+        "user": "user",
+        "assistant": "assistant",
+        "model": "assistant",
+        "tool_response": "tool_response",
     }
     operator_key = operator.lower()
-    if operator_key not in operator_tags:
-        raise ValueError("operator must be 'user', 'assistant', or 'tool_response'")
+    if operator_key not in operator_roles:
+        raise ValueError("operator must be 'user', 'assistant', 'model', or 'tool_response'")
 
     temp_file_path = Path(temp_file_name)
     temp_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(temp_file_path, "a") as f:
-        f.write(f"{operator_tags[operator_key]}\n")
-        f.write(f"{data}\n\n")
+
+    if temp_file_path.exists():
+        file_contents = temp_file_path.read_text().strip()
+    else:
+        file_contents = ""
+
+    if file_contents:
+        try:
+            chat_history = json.loads(file_contents)
+        except json.JSONDecodeError:
+            chat_history = {
+                "messages": [
+                    {
+                        "role": "legacy",
+                        "content": file_contents,
+                    }
+                ]
+            }
+    else:
+        chat_history = {"messages": []}
+
+    if isinstance(chat_history, list):
+        chat_history = {"messages": chat_history}
+    elif "messages" not in chat_history:
+        chat_history = {"messages": []}
+
+    chat_history["messages"].append(
+        {
+            "role": operator_roles[operator_key],
+            "content": data,
+        }
+    )
+
+    with open(temp_file_path, "w") as f:
+        json.dump(chat_history, f, indent=2)
+        f.write("\n")
 
 
 def record_chat_hisotry(temp_file_name, operator, data):
