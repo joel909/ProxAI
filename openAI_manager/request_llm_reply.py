@@ -29,7 +29,7 @@ def request_reply(input_messages, client, model):
         }
     },{
         "type": "function",
-        "name": "general_search",
+        "name": "search_web",
         "description": """Call this tool if you need to search for information from the web.
         Use it when:
         - user asks about current events, news, or general knowledge or something that is not common knowledge
@@ -41,7 +41,9 @@ def request_reply(input_messages, client, model):
 
         The tool returns summaries and positions for matching results.
         If additional detail is needed, call `crawl_result` with the relevant result position.
-        You may call `crawl_result` for multiple results if necessary.""",
+        You may call `crawl_result` for multiple results if necessary.
+        Please note that crawl_result is not there so just inform the user what all positions no u want to search on
+        """,
         "parameters": {
             "type": "object",
             "properties": {

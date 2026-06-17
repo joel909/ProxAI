@@ -3,4 +3,7 @@ def notify_tool_calls(tool_calls, on_tool_call):
         return
 
     for tool_call in tool_calls:
-        on_tool_call(tool_call.name)
+        try:
+            on_tool_call(tool_call.name, "started")
+        except TypeError:
+            on_tool_call(tool_call.name)

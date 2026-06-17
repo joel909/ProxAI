@@ -37,10 +37,13 @@ def main():
                 spinner = LoadingSpinner()
                 spinner.start()
 
-                def show_tool_call(tool_name):
+                def show_tool_call(tool_name, event="started"):
                     spinner.stop()
-                    print(f"{YELLOW}Tool requested: {tool_name}{RESET}")
-                    spinner.start()
+
+                    if event == "started":
+                        print(f"{YELLOW}Tool requested: {tool_name}{RESET}")
+                    elif event == "finished":
+                        spinner.start()
 
                 try:
                     response = openai_manager.request_llm_reply(

@@ -1,3 +1,5 @@
+from tools.search_tools import FireCrawlTool
+import json
 from .request_llm_reply import build_input_messages, request_reply
 from .reply_flow_utils import (
     add_response_output,
@@ -18,6 +20,7 @@ def request_reply_with_tool_loop(
     chat_history_file,
     on_tool_call=None,
 ):
+    search_tool = FireCrawlTool()
     input_messages = build_input_messages(prompt)
 
     while True:
@@ -38,7 +41,8 @@ def request_reply_with_tool_loop(
         # Check whether the model asked for the read_memory tool.
         # If found, this gives us the tool call object, including its call_id.
         read_memory_call = find_tool_call(tool_calls, "read_memory")
-        if read_memory_call is None:
+        search_web = find_tool_call(tool_calls, "search_web")
+        if read_memory_call is None and search_web is None:
             record_final_response(
                 storage_service,
                 chat_history_file,
@@ -52,14 +56,43 @@ def request_reply_with_tool_loop(
             response_output,
         )
 
-        memory_output = read_memory(
-            storage_service,
-            chat_history_file,
-        )
+        if search_web is not None:
+            # Handle search_web tool call
+            try:
+                # print("search_web.arguments", json.loads(search_web.arguments))
+                search_output = search_tool.search(json.loads(search_web.arguments)["queries"])
+                # print("search_output", search_output)
+                input_messages.append(
+                    build_tool_output(
+                        search_web,
+                        search_output,
+                    )
+                )
+                notify_tool_finished(on_tool_call, search_web.name)
+            except Exception as e:
+                print(f"Error occurred while searching: {e}")
+                break
+        if read_memory_call is not None:
+            # Handle read_memory tool call
+            try:
+                memory_output = read_memory(storage_service,chat_history_file,)
+                input_messages.append(
+                    build_tool_output(
+                        read_memory_call,
+                        memory_output,
+                    )
+                )
+                notify_tool_finished(on_tool_call, read_memory_call.name)
+            except Exception as e:
+                print(f"Error occurred while reading memory: {e}")
+                break
 
-        input_messages.append(
-            build_tool_output(
-                read_memory_call,
-                memory_output,
-            )
-        )
+
+def notify_tool_finished(on_tool_call, tool_name):
+    if on_tool_call is None:
+        return
+
+    try:
+        on_tool_call(tool_name, "finished")
+    except TypeError:
+        pass
