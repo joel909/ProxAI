@@ -28,3 +28,13 @@ class FireCrawlTool:
             sys.stdout.flush()
             results.append({query: "result is : \n" + str(search_result)})
         return results
+    def crawl(self,websites):
+        results = []
+        for website in websites:
+            sys.stdout.write(f"{CLEAR_LINE}{YELLOW}crawling website:{RESET} {BLUE}{website}{RESET}")
+            sys.stdout.flush()
+            crawl_result = self.app.scrape(website)
+            sys.stdout.write(CLEAR_LINE)
+            sys.stdout.flush()
+            results.append({website: "result is : \n" + str(crawl_result)})
+        return results

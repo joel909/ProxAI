@@ -1,6 +1,14 @@
 import sys
 from auth_service import AuthService
-from inputs import BLUE, RED, RESET, YELLOW, LoadingSpinner
+from inputs import (
+    BLUE,
+    RED,
+    RESET,
+    YELLOW,
+    LoadingSpinner,
+    copy_code_block,
+    print_assistant_response,
+)
 from openAI_manager import OpenAIManager
 from storage.service import StorageService
 
@@ -32,7 +40,19 @@ def main():
                 print("Available commands:")
                 print("/help - Show this help message")
                 print("/exit - Exit the application")
+                print("/copy N - Copy code block N from the last response")
                 # Add more commands as needed
+            elif user_input.lower().startswith("/copy"):
+                parts = user_input.split()
+                try:
+                    index = int(parts[1]) if len(parts) > 1 else 1
+                except ValueError:
+                    print(f"{RED}Usage: /copy N{RESET}")
+                    continue
+
+                copied, message = copy_code_block(index)
+                color = YELLOW if copied else RED
+                print(f"{color}{message}{RESET}")
             else:
                 spinner = LoadingSpinner()
                 spinner.start()
@@ -52,7 +72,7 @@ def main():
                     )
                 finally:
                     spinner.stop()
-                print(response)
+                print_assistant_response(response)
                 # Here you can add logic to handle other commands
     
     else:

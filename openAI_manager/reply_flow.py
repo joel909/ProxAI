@@ -4,7 +4,6 @@ from .request_llm_reply import build_input_messages, request_reply
 from .reply_flow_utils import (
     add_response_output,
     build_tool_output,
-    find_tool_call,
     get_function_calls,
     notify_tool_calls,
     read_memory,
@@ -38,11 +37,7 @@ def request_reply_with_tool_loop(
         # This only reports the tool name for display; it does not run the tool.
         notify_tool_calls(tool_calls, on_tool_call)
 
-        # Check whether the model asked for the read_memory tool.
-        # If found, this gives us the tool call object, including its call_id.
-        read_memory_call = find_tool_call(tool_calls, "read_memory")
-        search_web = find_tool_call(tool_calls, "search_web")
-        if read_memory_call is None and search_web is None:
+        if not tool_calls:
             record_final_response(
                 storage_service,
                 chat_history_file,
@@ -56,36 +51,40 @@ def request_reply_with_tool_loop(
             response_output,
         )
 
-        if search_web is not None:
-            # Handle search_web tool call
-            try:
-                # print("search_web.arguments", json.loads(search_web.arguments))
-                search_output = search_tool.search(json.loads(search_web.arguments)["queries"])
-                # print("search_output", search_output)
-                input_messages.append(
-                    build_tool_output(
-                        search_web,
-                        search_output,
-                    )
-                )
-                notify_tool_finished(on_tool_call, search_web.name)
-            except Exception as e:
-                print(f"Error occurred while searching: {e}")
-                break
-        if read_memory_call is not None:
-            # Handle read_memory tool call
-            try:
-                memory_output = read_memory(storage_service,chat_history_file,)
-                input_messages.append(
-                    build_tool_output(
-                        read_memory_call,
-                        memory_output,
-                    )
-                )
-                notify_tool_finished(on_tool_call, read_memory_call.name)
-            except Exception as e:
-                print(f"Error occurred while reading memory: {e}")
-                break
+        for tool_call in tool_calls:
+            tool_output = run_tool_call(
+                tool_call,
+                search_tool,
+                storage_service,
+                chat_history_file,
+            )
+            input_messages.append(build_tool_output(tool_call, tool_output))
+            notify_tool_finished(on_tool_call, tool_call.name)
+
+
+def run_tool_call(tool_call, search_tool, storage_service, chat_history_file):
+    try:
+        if tool_call.name == "search_web":
+            arguments = parse_tool_arguments(tool_call)
+            return search_tool.search(arguments["queries"])
+
+        if tool_call.name == "read_memory":
+            return read_memory(storage_service, chat_history_file)
+
+        if tool_call.name == "read_website":
+            arguments = parse_tool_arguments(tool_call)
+            return search_tool.crawl(arguments["websites"])
+
+        return {"error": f"Unsupported tool call: {tool_call.name}"}
+    except Exception as e:
+        return {"error": f"{tool_call.name} failed: {e}"}
+
+
+def parse_tool_arguments(tool_call):
+    if not tool_call.arguments:
+        return {}
+
+    return json.loads(tool_call.arguments)
 
 
 def notify_tool_finished(on_tool_call, tool_name):
