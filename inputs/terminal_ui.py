@@ -1,14 +1,18 @@
 import base64
 import itertools
+import os
 import re
 import shutil
 import subprocess
 import sys
+import termios
 import textwrap
 import threading
 import time
+import tty
 
 RED = "\033[31m"
+BRIGHT_RED = "\033[91m"
 BLUE = "\033[34m"
 YELLOW = "\033[33m"
 GREEN = "\033[32m"
@@ -24,7 +28,10 @@ HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 ORDERED_LIST_RE = re.compile(r"^(\s*)(\d+)\.\s+(.+)$")
 UNORDERED_LIST_RE = re.compile(r"^(\s*)[-*]\s+(.+)$")
 INLINE_CODE_RE = re.compile(r"`([^`]+)`")
+WARNING_BLOCK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 LAST_CODE_BLOCKS = []
+WRITE_CONFIRM_YES = "yes"
+WRITE_CONFIRM_DENY = "deny"
 
 
 class LoadingSpinner:
@@ -126,6 +133,59 @@ def copy_code_block(index):
     return True, f"Copied code block #{index}."
 
 
+def confirm_user_permission(
+    action,
+    details=None,
+    yes_label="Yes",
+    no_label="No",
+    prompt="Allow this action?",
+    info_actions=None,
+):
+    if details is None:
+        details = {}
+    if info_actions is None:
+        info_actions = []
+
+    while True:
+        print(f"{BOLD}{YELLOW}{action}{RESET}")
+        for label, value in details.items():
+            print(f"{CYAN}{label}:{RESET} {value}")
+
+        choice = _select_menu(
+            [yes_label, *[label for label, _handler in info_actions], no_label],
+            prompt=prompt,
+        )
+
+        if choice == 0:
+            return WRITE_CONFIRM_YES
+
+        info_index = choice - 1
+        if 0 <= info_index < len(info_actions):
+            _label, handler = info_actions[info_index]
+            handler()
+            continue
+
+        return WRITE_CONFIRM_DENY
+
+
+def confirm_write_to_file(file_path, content):
+    full_path = os.path.abspath(file_path)
+    return confirm_user_permission(
+        action="Write file requested",
+        details={
+            "File": full_path,
+            "Content": _content_summary(content),
+        },
+        yes_label="Yes, write file",
+        no_label="No, deny write",
+        prompt="Allow this write?",
+        info_actions=[
+            ("Show content", lambda: _show_write_content(content)),
+            ("Explain content", lambda: print(_explain_write_content(full_path, content))),
+        ],
+    )
+
+
 def _render_markdown_line(line, width):
     if line == "":
         return [""]
@@ -167,18 +227,104 @@ def _render_markdown_line(line, width):
     return [_style_inline(line) for line in _wrap_text(line, width, "")]
 
 
-def _render_code_block(lines, language, terminal_width):
+def _select_menu(options, prompt):
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        return _select_menu_fallback(options, prompt)
+
+    selected_index = 0
+    sys.stdout.write("\033[?25l")
+    try:
+        while True:
+            _draw_menu(options, prompt, selected_index)
+            key = _read_key()
+            if key in ("\r", "\n"):
+                _finish_menu(options)
+                return selected_index
+            if key == "\x1b[A":
+                selected_index = (selected_index - 1) % len(options)
+            elif key == "\x1b[B":
+                selected_index = (selected_index + 1) % len(options)
+            elif key in ("1", "y", "Y"):
+                _finish_menu(options)
+                return 0
+            elif key in ("4", "n", "N"):
+                _finish_menu(options)
+                return len(options) - 1
+    finally:
+        sys.stdout.write("\033[?25h")
+        sys.stdout.flush()
+
+
+def _draw_menu(options, prompt, selected_index):
+    sys.stdout.write(f"{CLEAR_LINE}{prompt}\n")
+    for index, option in enumerate(options):
+        marker = ">" if index == selected_index else " "
+        color = GREEN if index == selected_index else DIM
+        sys.stdout.write(f"{CLEAR_LINE}{color}{marker} {option}{RESET}\n")
+    sys.stdout.write(f"\033[{len(options) + 1}A")
+    sys.stdout.flush()
+
+
+def _finish_menu(options):
+    sys.stdout.write(f"\033[{len(options) + 1}B\r")
+    sys.stdout.flush()
+
+
+def _read_key():
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        first = sys.stdin.read(1)
+        if first == "\x1b":
+            rest = sys.stdin.read(2)
+            return first + rest
+        return first
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+
+def _select_menu_fallback(options, prompt):
+    print(prompt)
+    for index, option in enumerate(options, start=1):
+        default = " default" if index == 1 else ""
+        print(f"{index}. {option}{default}")
+
+    while True:
+        answer = input("Choose option: ").strip()
+        if answer == "":
+            return 0
+
+        try:
+            selected = int(answer)
+        except ValueError:
+            print("Enter a number from the list.")
+            continue
+
+        if 1 <= selected <= len(options):
+            return selected - 1
+
+        print("Invalid option.")
+
+
+def _render_code_block(lines, language, terminal_width, remember=True):
     if not lines:
         lines = [""]
 
-    LAST_CODE_BLOCKS.append("\n".join(lines))
-    block_number = len(LAST_CODE_BLOCKS)
+    if remember:
+        LAST_CODE_BLOCKS.append("\n".join(lines))
+        block_number = len(LAST_CODE_BLOCKS)
+    else:
+        block_number = None
+
     content_width = max(len(_strip_ansi(line)) for line in lines)
     label_name = language or "code"
-    label = f" {label_name}  [copy: /copy {block_number}] "
+    label = f" {label_name} "
+    if block_number is not None:
+        label = f" {label_name}  [copy: /copy {block_number}] "
     max_box_width = max(24, terminal_width - 4)
     if len(label) > max_box_width:
-        label = f" code #{block_number} "
+        label = f" code #{block_number} " if block_number is not None else " code "
     box_width = min(max(content_width, len(label), 24), max_box_width)
     top = f"{DIM}+{label}{'-' * max(0, box_width - len(label))}+{RESET}"
     bottom = f"{DIM}+{'-' * box_width}+{RESET}"
@@ -193,6 +339,52 @@ def _render_code_block(lines, language, terminal_width):
     return rendered
 
 
+def _content_summary(content):
+    text = str(content)
+    byte_count = len(text.encode())
+    line_count = len(text.splitlines()) or 1
+    return f"{line_count} line(s), {byte_count} byte(s)"
+
+
+def _show_write_content(content):
+    print(
+        "\n".join(
+            _render_code_block(
+                str(content).splitlines(),
+                "content",
+                _terminal_width(),
+                remember=False,
+            )
+        )
+    )
+
+
+def _explain_write_content(file_path, content):
+    text = str(content)
+    lines = text.splitlines()
+    preview = "\n".join(lines[:8])
+    if len(lines) > 8:
+        preview += f"\n... {len(lines) - 8} more line(s)"
+
+    return "\n".join(
+        [
+            f"{BOLD}{CYAN}WRITE EXPLANATION{RESET}",
+            f"{CYAN}Target:{RESET} {file_path}",
+            f"{CYAN}Size:{RESET} {_content_summary(text)}",
+            f"{CYAN}Action:{RESET} create or overwrite this file with the requested content.",
+            f"{CYAN}Preview:{RESET}",
+            "\n".join(
+                _render_code_block(
+                    preview.splitlines(),
+                    "text",
+                    _terminal_width(),
+                    remember=False,
+                )
+            ),
+        ]
+    )
+
+
 def _wrap_code_line(line, width):
     if len(line) <= width:
         return [line]
@@ -201,7 +393,8 @@ def _wrap_code_line(line, width):
 
 
 def _style_inline(line):
-    return INLINE_CODE_RE.sub(lambda match: f"{GREEN}{match.group(1)}{RESET}", line)
+    line = INLINE_CODE_RE.sub(lambda match: f"{GREEN}{match.group(1)}{RESET}", line)
+    return WARNING_BLOCK_RE.sub(lambda match: f"{BOLD}{BRIGHT_RED}[[{match.group(1)}]]{RESET}", line)
 
 
 def _wrap_text(text, width, subsequent_indent):

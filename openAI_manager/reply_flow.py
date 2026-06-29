@@ -1,4 +1,5 @@
 from tools.search_tools import FireCrawlTool
+from tools.use_desktop_tools import DesktopTools
 import json
 from .request_llm_reply import build_input_messages, request_reply
 from .reply_flow_utils import (
@@ -20,6 +21,7 @@ def request_reply_with_tool_loop(
     on_tool_call=None,
 ):
     search_tool = FireCrawlTool()
+    desktop_tool = DesktopTools()
     input_messages = build_input_messages(prompt)
 
     while True:
@@ -55,6 +57,7 @@ def request_reply_with_tool_loop(
             tool_output = run_tool_call(
                 tool_call,
                 search_tool,
+                desktop_tool,
                 storage_service,
                 chat_history_file,
             )
@@ -62,7 +65,7 @@ def request_reply_with_tool_loop(
             notify_tool_finished(on_tool_call, tool_call.name)
 
 
-def run_tool_call(tool_call, search_tool, storage_service, chat_history_file):
+def run_tool_call(tool_call, search_tool, desktop_tool, storage_service, chat_history_file):
     try:
         if tool_call.name == "search_web":
             arguments = parse_tool_arguments(tool_call)
@@ -74,6 +77,21 @@ def run_tool_call(tool_call, search_tool, storage_service, chat_history_file):
         if tool_call.name == "read_website":
             arguments = parse_tool_arguments(tool_call)
             return search_tool.crawl(arguments["websites"])
+
+        if tool_call.name == "write_to_file":
+            arguments = parse_tool_arguments(tool_call)
+            return desktop_tool.write_to_file(
+                arguments["filePath"],
+                arguments["content"],
+                arguments["filename"],
+            )
+
+        if tool_call.name == "read_file":
+            arguments = parse_tool_arguments(tool_call)
+            return desktop_tool.read_file(arguments["filePath"])
+        if tool_call.name == "run_command":
+            arguments = parse_tool_arguments(tool_call)
+            return desktop_tool.check_and_run_shell_command(arguments["command"])
 
         return {"error": f"Unsupported tool call: {tool_call.name}"}
     except Exception as e:
