@@ -1,6 +1,7 @@
 from .service import Inputs
 from .terminal_ui import (
     BLUE,
+    CYAN,
     RED,
     RESET,
     YELLOW,
@@ -9,4 +10,5 @@ from .terminal_ui import (
     copy_code_block,
     print_assistant_response,
     render_assistant_response,
+    select_menu,
 )

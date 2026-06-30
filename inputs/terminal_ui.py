@@ -186,6 +186,11 @@ def confirm_write_to_file(file_path, content):
     )
 
 
+def select_menu(options, prompt):
+    selected_index = _select_menu(options, prompt)
+    return options[selected_index]
+
+
 def _render_markdown_line(line, width):
     if line == "":
         return [""]

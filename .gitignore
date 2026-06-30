@@ -39,3 +39,4 @@ Thumbs.db
 .env
 .env.*
 .ProxAI/.env
+assistant.db
