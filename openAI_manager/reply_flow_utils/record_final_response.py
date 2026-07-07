@@ -1,16 +1,3 @@
-def record_final_response(
-    storage_service,
-    chat_history_file,
-    prompt,
-    response_text,
-):
-    storage_service.record_chat_history(
-        chat_history_file,
-        "user",
-        prompt,
-    )
-    storage_service.record_chat_history(
-        chat_history_file,
-        "assistant",
-        response_text,
-    )
+def record_final_response(chat_history_manager,prompt,response_text,):
+    chat_history_manager.store_chat_history("user",prompt)
+    chat_history_manager.store_chat_history("assistant",response_text)

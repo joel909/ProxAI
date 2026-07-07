@@ -1,56 +1,51 @@
-from pathlib import Path
+from sqlalchemy import literal, select, union_all
+from storage import AllChatsTable, Session, ToolCallHistoryTable
+from . import engine
 import json
 
 ALLOWED_CHAT_ROLES = {"user", "assistant", "tool_response"}
 
+def read_chat_history(conversation_id, include_tool_outputs=False):
 
-def read_chat_history(temp_file_name):
-    temp_file_path = Path(temp_file_name)
-    if not temp_file_path.exists():
-        return json.dumps({"messages": []}, indent=2)
+    with Session(engine) as session:
+        chats_query = select(
+            AllChatsTable.conversation_id.label("conversation_id"),
+            AllChatsTable.role.label("role"),
+            AllChatsTable.message.label("message"),
+            AllChatsTable.timestamp.label("timestamp"),
+            literal(None).label("tool_call_id"),
+            literal(None).label("output"),
+            literal(None).label("output_type"),
+            literal(None).label("tool_name"),
+        ).where(AllChatsTable.conversation_id == conversation_id)
 
-    file_contents = temp_file_path.read_text().strip()
-    if not file_contents:
-        return json.dumps({"messages": []}, indent=2)
+        tool_calls_query = select(
+            ToolCallHistoryTable.conversation_id.label("conversation_id"),
+            literal("tool_response").label("role"),
+            ToolCallHistoryTable.output.label("message"),
+            ToolCallHistoryTable.timestamp.label("timestamp"),
+            ToolCallHistoryTable.tool_call_id.label("tool_call_id"),
+            ToolCallHistoryTable.output.label("output"),
+            ToolCallHistoryTable.output_type.label("output_type"),
+            ToolCallHistoryTable.tool_name.label("tool_name"),
+        ).where(
+            ToolCallHistoryTable.conversation_id == conversation_id,
+            ToolCallHistoryTable.tool_name != "read_memory" 
+            )
+        if include_tool_outputs:
+            history_events = union_all(chats_query, tool_calls_query).subquery()
+        else:
+            history_events = chats_query.subquery()
+        messages = session.execute(
+            select(history_events).order_by(history_events.c.timestamp)
+        ).mappings().all()
 
-    try:
-        chat_history = json.loads(file_contents)
-    except json.JSONDecodeError:
         chat_history = {
             "messages": [
-                {
-                    "role": "legacy",
-                    "content": file_contents,
-                }
+                {"role": message["role"], "content": message["message"]}
+                for message in messages
             ]
         }
+        # print(f"Read chat history for conversation_id {conversation_id}: {chat_history}")
 
-    if isinstance(chat_history, list):
-        messages = chat_history
-    elif isinstance(chat_history, dict):
-        messages = chat_history.get("messages", [])
-    else:
-        messages = []
-
-    normalized_messages = []
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-
-        role = str(message.get("role", "user")).lower()
-        if role not in ALLOWED_CHAT_ROLES:
-            role = "user"
-
-        content = message.get("content", "")
-        if not isinstance(content, str):
-            content = json.dumps(content)
-
-        normalized_messages.append(
-            {
-                "role": role,
-                "content": content,
-            }
-        )
-
-    chat_history = {"messages": normalized_messages}
     return json.dumps(chat_history, indent=2)

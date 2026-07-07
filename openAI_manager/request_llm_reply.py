@@ -28,10 +28,17 @@ def request_reply(input_messages, client, model):
         
         When you call this, the full conversation history will be injected and 
         your request will be automatically resent with that context. 
-        You do not need to ask the user for anything — just call this tool and wait.""",
+        You do not need to ask the user for anything — just call this tool and wait.
+        Only inlcude tool outputs if you need any tool output read_memory tool output history will not be given
+        """,
         "parameters": {
             "type": "object",
-            "properties": {}   # no params needed, just a trigger
+            "properties": {
+                 "include_tool_outputs":{
+                      "type":"boolean",
+                      "description":"If true, the tool will include the outputs of any tools that were called in use it only if needed to answer the user, otherwise set it to false THIS DOES NOT RETURN READ_MEMORY TOOL OUTPUTS, it only returns the tool outputs of other tools that were called in the conversation history"
+                 }
+            }   # no params needed, just a trigger
         }
     },{
         "type": "function",
@@ -158,9 +165,13 @@ def request_reply(input_messages, client, model):
             raise ValueError("Model is not set. Please set the model before requesting a reply.")
 
     # print("------------------\nRequested reply for this inputs: \n",input_messages,"\n------------------","")
-    response = client.responses.create(
-        model=model,
-        input=input_messages,
-        tools=tools
-    )
+    try:
+        response = client.responses.create(
+            model=model,
+            input=input_messages,
+            tools=tools
+        )
+    except Exception as e:
+        raise RuntimeError(f"Error while requesting reply from LLM: {e}")
+    
     return response.output,response.output_text

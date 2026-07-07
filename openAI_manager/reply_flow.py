@@ -16,8 +16,7 @@ def request_reply_with_tool_loop(
     prompt,
     client,
     model,
-    storage_service,
-    chat_history_file,
+    chat_history_manager,
     on_tool_call=None,
 ):
     search_tool = FireCrawlTool()
@@ -41,8 +40,7 @@ def request_reply_with_tool_loop(
 
         if not tool_calls:
             record_final_response(
-                storage_service,
-                chat_history_file,
+                chat_history_manager,
                 prompt,
                 response_text,
             )
@@ -58,21 +56,23 @@ def request_reply_with_tool_loop(
                 tool_call,
                 search_tool,
                 desktop_tool,
-                storage_service,
-                chat_history_file,
+                chat_history_manager,
             )
+            chat_history_manager.store_tool_call_history(tool_call.name, tool_call.call_id, tool_output, "tool_response")
             input_messages.append(build_tool_output(tool_call, tool_output))
             notify_tool_finished(on_tool_call, tool_call.name)
 
 
-def run_tool_call(tool_call, search_tool, desktop_tool, storage_service, chat_history_file):
+def run_tool_call(tool_call, search_tool, desktop_tool,  chat_history_manager):
     try:
         if tool_call.name == "search_web":
             arguments = parse_tool_arguments(tool_call)
             return search_tool.search(arguments["queries"])
 
         if tool_call.name == "read_memory":
-            return read_memory(storage_service, chat_history_file)
+            arguments = parse_tool_arguments(tool_call)
+            return read_memory(chat_history_manager, include_tool_outputs=arguments["include_tool_outputs"])
+        
 
         if tool_call.name == "read_website":
             arguments = parse_tool_arguments(tool_call)

@@ -3,23 +3,11 @@ import json
 
 from .create_temp_chat_history_file import create_temp_chat_history_file
 from .read_chat_history import read_chat_history
-from .store_session_info import store_session_info
 
 class StorageService:
     def __init__(self):
         self.project_root = Path(__file__).resolve().parents[1]
 
-    def store_session_info(self, info):
-        path = self.get_config_path()
-        store_session_info(info, path)
-
-    def get_session_info(self):
-        path = self.get_config_path()
-        if not path.exists():
-            return None
-
-        with open(path) as f:
-            return json.load(f)
 
     def get_config_path(self, app_name="ProxAI"):
         return self.get_app_path(app_name) / "config.json"

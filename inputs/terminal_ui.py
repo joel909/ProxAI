@@ -28,7 +28,12 @@ HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 ORDERED_LIST_RE = re.compile(r"^(\s*)(\d+)\.\s+(.+)$")
 UNORDERED_LIST_RE = re.compile(r"^(\s*)[-*]\s+(.+)$")
 INLINE_CODE_RE = re.compile(r"`([^`]+)`")
+BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
+ITALIC_RE = re.compile(r"(?<!\*)\*([^*]+)\*(?!\*)")
 WARNING_BLOCK_RE = re.compile(r"\[\[([^\]]+)\]\]")
+INLINE_STYLE_RE = re.compile(
+    r"`([^`]+)`|\[\[([^\]]+)\]\]|\*\*([^*]+)\*\*|(?<!\*)\*([^*]+)\*(?!\*)"
+)
 LAST_CODE_BLOCKS = []
 WRITE_CONFIRM_YES = "yes"
 WRITE_CONFIRM_DENY = "deny"
@@ -209,27 +214,27 @@ def _render_markdown_line(line, width):
     if ordered_match:
         indent, number, content = ordered_match.groups()
         prefix = f"{indent}{number}. "
-        wrapped = _wrap_text(content, width - len(prefix), " " * len(prefix))
+        wrapped = _wrap_styled_text(content, width - len(prefix), " " * len(prefix))
         return [
-            f"{indent}{CYAN}{number}.{RESET} {_style_inline(wrapped[0])}",
-            *[_style_inline(line) for line in wrapped[1:]],
+            f"{indent}{CYAN}{number}.{RESET} {wrapped[0]}",
+            *wrapped[1:],
         ]
 
     unordered_match = UNORDERED_LIST_RE.match(line)
     if unordered_match:
         indent, content = unordered_match.groups()
         prefix = f"{indent}* "
-        wrapped = _wrap_text(content, width - len(prefix), " " * len(prefix))
+        wrapped = _wrap_styled_text(content, width - len(prefix), " " * len(prefix))
         return [
-            f"{indent}{CYAN}*{RESET} {_style_inline(wrapped[0])}",
-            *[_style_inline(line) for line in wrapped[1:]],
+            f"{indent}{CYAN}*{RESET} {wrapped[0]}",
+            *wrapped[1:],
         ]
 
     if line.startswith(">"):
         wrapped = _wrap_text(line, width, "> ")
         return [f"{DIM}{line}{RESET}" for line in wrapped]
 
-    return [_style_inline(line) for line in _wrap_text(line, width, "")]
+    return _wrap_styled_text(line, width, "")
 
 
 def _select_menu(options, prompt):
@@ -399,7 +404,92 @@ def _wrap_code_line(line, width):
 
 def _style_inline(line):
     line = INLINE_CODE_RE.sub(lambda match: f"{GREEN}{match.group(1)}{RESET}", line)
+    line = BOLD_RE.sub(lambda match: f"{BOLD}{match.group(1)}{RESET}", line)
+    line = ITALIC_RE.sub(lambda match: f"{DIM}{match.group(1)}{RESET}", line)
     return WARNING_BLOCK_RE.sub(lambda match: f"{BOLD}{BRIGHT_RED}[[{match.group(1)}]]{RESET}", line)
+
+
+def _wrap_styled_text(text, width, subsequent_indent):
+    width = max(24, width)
+    lines = [""]
+    line_lengths = [0]
+    subsequent_width = max(24, width)
+
+    def current_width():
+        return width if len(lines) == 1 else subsequent_width
+
+    def new_line():
+        lines[-1] = lines[-1].rstrip()
+        lines.append(subsequent_indent)
+        line_lengths.append(len(subsequent_indent))
+
+    def append_word(word, style):
+        if not word:
+            return
+
+        styled_word = _apply_inline_style(word, style)
+        word_length = len(word)
+        if line_lengths[-1] > len(subsequent_indent) and (
+            line_lengths[-1] + word_length > current_width()
+        ):
+            new_line()
+
+        lines[-1] += styled_word
+        line_lengths[-1] += word_length
+
+    def append_space():
+        if not lines[-1] or lines[-1].endswith(" "):
+            return
+        if line_lengths[-1] + 1 > current_width():
+            new_line()
+            return
+        lines[-1] += " "
+        line_lengths[-1] += 1
+
+    for segment, style in _inline_segments(text):
+        for token in re.findall(r"\S+|\s+", segment):
+            if token.isspace():
+                append_space()
+            else:
+                append_word(token, style)
+
+    return [line.rstrip() for line in lines] or [""]
+
+
+def _inline_segments(text):
+    segments = []
+    position = 0
+    for match in INLINE_STYLE_RE.finditer(text):
+        if match.start() > position:
+            segments.append((text[position : match.start()], None))
+
+        if match.group(1) is not None:
+            segments.append((match.group(1), "code"))
+        elif match.group(2) is not None:
+            segments.append((f"[[{match.group(2)}]]", "warning"))
+        elif match.group(3) is not None:
+            segments.append((match.group(3), "bold"))
+        elif match.group(4) is not None:
+            segments.append((match.group(4), "italic"))
+
+        position = match.end()
+
+    if position < len(text):
+        segments.append((text[position:], None))
+
+    return segments
+
+
+def _apply_inline_style(text, style):
+    if style == "code":
+        return f"{GREEN}{text}{RESET}"
+    if style == "warning":
+        return f"{BOLD}{BRIGHT_RED}{text}{RESET}"
+    if style == "bold":
+        return f"{BOLD}{text}{RESET}"
+    if style == "italic":
+        return f"{DIM}{text}{RESET}"
+    return text
 
 
 def _wrap_text(text, width, subsequent_indent):

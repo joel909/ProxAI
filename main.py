@@ -2,6 +2,7 @@ import sys
 from auth_service import AuthService
 from inputs import (
     BLUE,
+    CYAN,
     RED,
     RESET,
     YELLOW,
@@ -10,6 +11,7 @@ from inputs import (
     print_assistant_response,
 )
 from openAI_manager import OpenAIManager
+from storage import ChatHistoryManager
 from storage.service import StorageService
 
 
@@ -18,29 +20,28 @@ def main():
     auth_service = AuthService()
     validated_config = auth_service.is_user_config_validated()
 
-    chat_history_file = StorageService().create_temp_chat_history_file()
+    chat_history_manager = ChatHistoryManager()
     openai_manager = OpenAIManager(
         validated_config["api_key"],
+        chat_history_manager,
         validated_config["model"],
-        chat_history_file,
     )
     print("User config validated. Proceeding with the application...")
     print(f"Provider: {validated_config['provider']}")
     print(f"Model: {validated_config['model']}")
-    print(f"Chat history temp file: {chat_history_file}")
     print("type /help for help!!")
     print("type /exit to exit the application!!")
     while True:
-        user_input = input(f"{RED}Enter your Prompt: {BLUE}")
+        user_input = input(f"{CYAN}Enter your Prompt: {BLUE}")
         print(RESET, end="")
         if user_input.lower() == "/exit":
             print("Exiting ProxAI CLI. Goodbye!")
             sys.exit(0)
         elif user_input.lower() == "/help":
-            print("Available commands:")
-            print("/help - Show this help message")
-            print("/exit - Exit the application")
-            print("/copy N - Copy code block N from the last response")
+            print(f"{CYAN}ProxAI Help Menu{RESET}")
+            print(f"{YELLOW}/help{RESET}   Show this help menu")
+            print(f"{YELLOW}/exit{RESET}   Exit the application")
+            print(f"{YELLOW}/copy N{RESET} Copy code block N from the last response")
             # Add more commands as needed
         elif user_input.lower().startswith("/copy"):
             parts = user_input.split()
