@@ -24,6 +24,7 @@ def get_and_select_provider_config():
                 "api_key": item.api_token,
                 "provider": item.provider,
                 "model": item.default_model,
+                "warning_token_limit": item.warning_token_limit,
             }
     if setup_action == add_new_provider_text:
         create_config(isStratup=False)

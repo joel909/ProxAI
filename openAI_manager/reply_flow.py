@@ -17,6 +17,7 @@ def request_reply_with_tool_loop(
     client,
     model,
     chat_history_manager,
+    warning_token_limit=None,
     on_tool_call=None,
 ):
     search_tool = FireCrawlTool()
@@ -28,7 +29,11 @@ def request_reply_with_tool_loop(
             input_messages,
             client,
             model,
+            warning_token_limit,
         )
+
+        if response_text is None:
+            return None
 
         # Pull out only the function/tool call items from the model response.
         # Normal text output is ignored here because only tool calls need routing.

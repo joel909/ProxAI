@@ -1,2 +1,4 @@
 openai
 firecrawl-py
+tiktoken
+sqlalchemy

@@ -15,6 +15,13 @@ from storage import ChatHistoryManager
 from storage.service import StorageService
 
 
+def format_token_limit(token_limit):
+    if token_limit % 1000 == 0:
+        return f"{token_limit // 1000}k"
+
+    return f"{token_limit / 1000:.1f}k"
+
+
 def main():
     print("Welcome to ProxAI CLI!")
     auth_service = AuthService()
@@ -25,10 +32,12 @@ def main():
         validated_config["api_key"],
         chat_history_manager,
         validated_config["model"],
+        validated_config.get("warning_token_limit"),
     )
     print("User config validated. Proceeding with the application...")
     print(f"Provider: {validated_config['provider']}")
     print(f"Model: {validated_config['model']}")
+    print(f"Token warning limit: {format_token_limit(openai_manager.warning_token_limit)}")
     print("type /help for help!!")
     print("type /exit to exit the application!!")
     while True:
@@ -73,6 +82,11 @@ def main():
                 )
             finally:
                 spinner.stop()
+
+            if response is None:
+                print(f"{YELLOW}Request cancelled.{RESET}")
+                continue
+
             print_assistant_response(response)
             # Here you can add logic to handle other commands
     

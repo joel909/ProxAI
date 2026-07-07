@@ -13,10 +13,55 @@ def get_api_key_env_var_name(provider):
 
 
 PROVIDER_OPTIONS = ["OpenAI", "HackclubAI", "Other"]
+DEFAULT_WARNING_TOKEN_LIMIT = 100000
+WARNING_TOKEN_LIMIT_OPTIONS = ["100k (recommended)", "50k", "200k", "500k", "Custom"]
 
 
 def is_provider_enabled(provider):
     return provider == "OpenAI"
+
+
+def get_warning_token_limit():
+    selected_limit = select_menu(
+        WARNING_TOKEN_LIMIT_OPTIONS,
+        "Select warning token limit",
+    )
+    if selected_limit != "Custom":
+        return parse_token_limit(selected_limit)
+
+    raw_limit = Inputs.getInput(
+        f"{CYAN}Enter custom warning token limit, e.g. 150k{RESET}",
+        result_type=str,
+    ).strip()
+    if raw_limit == "" or not raw_limit.lower().endswith("k"):
+        print(f"{RED}Custom token limit must use k format. Using default: {DEFAULT_WARNING_TOKEN_LIMIT}{RESET}")
+        return DEFAULT_WARNING_TOKEN_LIMIT
+
+    try:
+        warning_token_limit = parse_token_limit(raw_limit)
+    except ValueError:
+        print(f"{RED}Invalid token limit. Using default: {DEFAULT_WARNING_TOKEN_LIMIT}{RESET}")
+        return DEFAULT_WARNING_TOKEN_LIMIT
+
+    if warning_token_limit <= 0:
+        print(f"{RED}Token limit must be positive. Using default: {DEFAULT_WARNING_TOKEN_LIMIT}{RESET}")
+        return DEFAULT_WARNING_TOKEN_LIMIT
+
+    return warning_token_limit
+
+
+def parse_token_limit(raw_limit):
+    normalized_limit = raw_limit.strip().lower().replace("_", "").replace(",", "")
+    normalized_limit = normalized_limit.replace("(recommended)", "").strip()
+    multiplier = 1
+    if normalized_limit.endswith("k"):
+        multiplier = 1000
+        normalized_limit = normalized_limit[:-1]
+
+    if normalized_limit == "":
+        raise ValueError("empty token limit")
+
+    return int(float(normalized_limit) * multiplier)
 
 
 def create_config(isStratup=True):
@@ -93,8 +138,17 @@ def create_config(isStratup=True):
             model_selected = True
             print(f"Selected model: {selected_model}")
 
+    warning_token_limit = get_warning_token_limit()
+    config["warning_token_limit"] = warning_token_limit
+    print(f"Warning token limit: {warning_token_limit}")
+
     try:
-        save_provider_key(provider, api_key)
+        save_provider_key(
+            provider,
+            api_key,
+            default_model=config["model"],
+            warning_token_limit=warning_token_limit,
+        )
         print(f"{GREEN}Config created and Validated successfully!{RESET}")
 
         sys.exit(0)  # Exit the application to restart it
@@ -103,4 +157,3 @@ def create_config(isStratup=True):
     except Exception as e:
         print(f"{RED}An error occurred while saving the provider key: {e}{RESET}")
         sys.exit(1)  # Exit with an error code
-

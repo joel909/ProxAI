@@ -1,4 +1,7 @@
-import string
+import json
+
+from .calculate_total_tokens import calculate_total_tokens
+from .warn_token_limit import warn_token_limit
 
 
 def build_input_messages(prompt):
@@ -15,7 +18,7 @@ def build_input_messages(prompt):
     ]
 
 
-def request_reply(input_messages, client, model):
+def request_reply(input_messages, client, model, warning_token_limit=None):
     tools = [{
         "type": "function",
         "name": "read_memory",
@@ -164,14 +167,30 @@ def request_reply(input_messages, client, model):
     if not model:
             raise ValueError("Model is not set. Please set the model before requesting a reply.")
 
+    if warning_token_limit is not None and not confirm_input_token_limit(
+        input_messages,
+        model,
+        warning_token_limit,
+    ):
+        return [], None
+
     # print("------------------\nRequested reply for this inputs: \n",input_messages,"\n------------------","")
     try:
+        
         response = client.responses.create(
             model=model,
             input=input_messages,
             tools=tools
         )
+
     except Exception as e:
         raise RuntimeError(f"Error while requesting reply from LLM: {e}")
     
     return response.output,response.output_text
+
+
+def confirm_input_token_limit(input_messages, model, warning_token_limit):
+    input_text = json.dumps(input_messages, ensure_ascii=False, default=str)
+    estimated_tokens = calculate_total_tokens(input_text, model)
+    # print(f"Estimated tokens for input: {estimated_tokens}")
+    return warn_token_limit(estimated_tokens, warning_token_limit)

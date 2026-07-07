@@ -15,6 +15,7 @@ class ProviderDB(Base):
     provider: Mapped[str] = mapped_column(nullable=False)
     default_model: Mapped[str] = mapped_column(nullable=False)
     api_token : Mapped[str] = mapped_column(nullable=False)
+    warning_token_limit: Mapped[int] = mapped_column(default=100000)
     __table_args__ = (
         UniqueConstraint("api_token", "default_model"),
     )
