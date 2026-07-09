@@ -20,7 +20,7 @@ class AuthService:
             print(f"Error occurred while creating config: {e}")
 
     # This function will be used to fetch the user config and validate it against the stored config
-    def is_user_config_validated(self):
+    def is_llm_config_validated(self):
         provider_config = get_and_select_provider_config()
         return provider_config
         

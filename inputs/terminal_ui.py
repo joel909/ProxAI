@@ -248,17 +248,17 @@ def _select_menu(options, prompt):
             _draw_menu(options, prompt, selected_index)
             key = _read_key()
             if key in ("\r", "\n"):
-                _finish_menu(options)
+                _finish_menu(options, prompt)
                 return selected_index
             if key == "\x1b[A":
                 selected_index = (selected_index - 1) % len(options)
             elif key == "\x1b[B":
                 selected_index = (selected_index + 1) % len(options)
             elif key in ("1", "y", "Y"):
-                _finish_menu(options)
+                _finish_menu(options, prompt)
                 return 0
             elif key in ("4", "n", "N"):
-                _finish_menu(options)
+                _finish_menu(options, prompt)
                 return len(options) - 1
     finally:
         sys.stdout.write("\033[?25h")
@@ -266,17 +266,21 @@ def _select_menu(options, prompt):
 
 
 def _draw_menu(options, prompt, selected_index):
-    sys.stdout.write(f"{CLEAR_LINE}{prompt}\n")
+    prompt_lines = 0
+    if prompt:
+        prompt_lines = 1
+        sys.stdout.write(f"{CLEAR_LINE}{prompt}\n")
     for index, option in enumerate(options):
         marker = ">" if index == selected_index else " "
         color = GREEN if index == selected_index else DIM
         sys.stdout.write(f"{CLEAR_LINE}{color}{marker} {option}{RESET}\n")
-    sys.stdout.write(f"\033[{len(options) + 1}A")
+    sys.stdout.write(f"\033[{len(options) + prompt_lines}A")
     sys.stdout.flush()
 
 
-def _finish_menu(options):
-    sys.stdout.write(f"\033[{len(options) + 1}B\r")
+def _finish_menu(options, prompt):
+    prompt_lines = 1 if prompt else 0
+    sys.stdout.write(f"\033[{len(options) + prompt_lines}B\r")
     sys.stdout.flush()
 
 
@@ -295,7 +299,8 @@ def _read_key():
 
 
 def _select_menu_fallback(options, prompt):
-    print(prompt)
+    if prompt:
+        print(prompt)
     for index, option in enumerate(options, start=1):
         default = " default" if index == 1 else ""
         print(f"{index}. {option}{default}")

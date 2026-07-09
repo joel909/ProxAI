@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import random
 import string
+from typing import Optional
 
 from sqlalchemy import UniqueConstraint, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
@@ -47,8 +48,50 @@ class ToolCallHistoryTable(Base):
     output_type : Mapped[str] = mapped_column(nullable=False)
     timestamp: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
+# Stores user-provided config for external tool providers.
+# Tool schemas and execution routing stay in code.
+class ToolCredentialTable(Base):
+    __tablename__ = "tool_credentials"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(nullable=False, unique=True)
+    api_key: Mapped[Optional[str]] = mapped_column(nullable=True)
+    enabled: Mapped[bool] = mapped_column(default=True)
+
 engine = create_engine("sqlite:///assistant.db")
 Base.metadata.create_all(engine)
+
+DEFAULT_TOOL_CREDENTIALS = [
+    {
+        "provider": "firecrawl",
+        "api_key": None,
+        "enabled": True,
+    },
+]
+
+
+def prefill_tool_credentials():
+    # Creates default external tool credential rows once, so users can fill keys later.
+    with Session(engine) as session:
+        existing_providers = set(session.scalars(select(ToolCredentialTable.provider)))
+        missing_credentials = [
+            credential for credential in DEFAULT_TOOL_CREDENTIALS
+            if credential["provider"] not in existing_providers
+        ]
+        if not missing_credentials:
+            return
+
+        session.add_all(
+            ToolCredentialTable(
+                provider=credential["provider"],
+                api_key=credential["api_key"],
+                enabled=credential["enabled"],
+            )
+            for credential in missing_credentials
+        )
+        session.commit()
+
+
+prefill_tool_credentials()
 
 class ChatHistoryManager:
     def __init__(self):

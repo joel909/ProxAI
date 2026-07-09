@@ -21,6 +21,7 @@ def get_and_select_provider_config():
     for item in provider_info:
         if item.provider == setup_action:
             return {
+                "provider_id": item.id,
                 "api_key": item.api_token,
                 "provider": item.provider,
                 "model": item.default_model,

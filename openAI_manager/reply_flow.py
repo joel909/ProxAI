@@ -19,6 +19,7 @@ def request_reply_with_tool_loop(
     chat_history_manager,
     warning_token_limit=None,
     on_tool_call=None,
+    build_input_messages_function=build_input_messages,
 ):
     search_tool = FireCrawlTool()
     desktop_tool = DesktopTools()

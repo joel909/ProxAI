@@ -1,8 +1,10 @@
 import sys
 from auth_service import AuthService
+from auth_service.create_config import get_warning_token_limit
 from inputs import (
     BLUE,
     CYAN,
+    Inputs,
     RED,
     RESET,
     YELLOW,
@@ -12,7 +14,9 @@ from inputs import (
 )
 from openAI_manager import OpenAIManager
 from storage import ChatHistoryManager
-from storage.service import StorageService
+from storage.tool_credentials import save_tool_api_key
+from storage.update_token_warn_limit import update_token_warning_limit
+from tools.setup_tools import setup_tools
 
 
 def format_token_limit(token_limit):
@@ -24,9 +28,11 @@ def format_token_limit(token_limit):
 
 def main():
     print("Welcome to ProxAI CLI!")
+    # the flow should be like first get a LLM working first that after getting the LLM working the user ne
+    #okay now this validates LLM configss 
     auth_service = AuthService()
-    validated_config = auth_service.is_user_config_validated()
-
+    validated_config = auth_service.is_llm_config_validated()
+    #validate if intial setup for proxAI to collect the information was done or not js check mainefiest
     chat_history_manager = ChatHistoryManager()
     openai_manager = OpenAIManager(
         validated_config["api_key"],
@@ -34,6 +40,8 @@ def main():
         validated_config["model"],
         validated_config.get("warning_token_limit"),
     )
+
+    
     print("User config validated. Proceeding with the application...")
     print(f"Provider: {validated_config['provider']}")
     print(f"Model: {validated_config['model']}")
@@ -51,7 +59,37 @@ def main():
             print(f"{YELLOW}/help{RESET}   Show this help menu")
             print(f"{YELLOW}/exit{RESET}   Exit the application")
             print(f"{YELLOW}/copy N{RESET} Copy code block N from the last response")
+            print(f"{YELLOW}/token-warn-limit{RESET} Update the token warning limit")
+            print(f"{YELLOW}/firecrawl-key{RESET} Add or update the Firecrawl API key")
+            print(f"{YELLOW}/setup-tools{RESET} Show tools pending setup")
             # Add more commands as needed
+        elif user_input.lower() == "/token-warn-limit":
+            try:
+                warning_token_limit = get_warning_token_limit()
+                update_token_warning_limit(
+                    validated_config["provider_id"],
+                    warning_token_limit,
+                )
+                validated_config["warning_token_limit"] = warning_token_limit
+                openai_manager.warning_token_limit = warning_token_limit
+                print(
+                    f"{YELLOW}Token warning limit updated to "
+                    f"{format_token_limit(warning_token_limit)}{RESET}"
+                )
+            except Exception as e:
+                print(f"{RED}Error updating token warning limit: {e}{RESET}")
+        elif user_input.lower() == "/firecrawl-key":
+            try:
+                api_key = Inputs.getInput(
+                    f"{CYAN}Enter your Firecrawl API key{RESET}",
+                    result_type=str,
+                )
+                save_tool_api_key("firecrawl", api_key)
+                print(f"{YELLOW}Firecrawl API key saved.{RESET}")
+            except Exception as e:
+                print(f"{RED}Error saving Firecrawl API key: {e}{RESET}")
+        elif user_input.lower() == "/setup-tools":
+            setup_tools()
         elif user_input.lower().startswith("/copy"):
             parts = user_input.split()
             try:
