@@ -40,3 +40,4 @@ Thumbs.db
 .env.*
 .ProxAI/.env
 assistant.db
+manifest.json

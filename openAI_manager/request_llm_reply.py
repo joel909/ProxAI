@@ -162,7 +162,7 @@ tools = [{
     }
     
     ]
-def request_reply(input_messages, client, model, warning_token_limit=None,tools=tools):
+def request_reply(input_messages, client, model, warning_token_limit=None,tools=tools,custom_available_tools=None):
     
     if not model:
             raise ValueError("Model is not set. Please set the model before requesting a reply.")
@@ -180,7 +180,7 @@ def request_reply(input_messages, client, model, warning_token_limit=None,tools=
         response = client.responses.create(
             model=model,
             input=input_messages,
-            tools=tools
+            tools=tools if custom_available_tools is None else custom_available_tools
         )
 
     except Exception as e:

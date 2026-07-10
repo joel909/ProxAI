@@ -34,6 +34,7 @@ WARNING_BLOCK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 INLINE_STYLE_RE = re.compile(
     r"`([^`]+)`|\[\[([^\]]+)\]\]|\*\*([^*]+)\*\*|(?<!\*)\*([^*]+)\*(?!\*)"
 )
+ANSI_CODE_RE = re.compile(r"\033\[[0-9;]*m")
 LAST_CODE_BLOCKS = []
 WRITE_CONFIRM_YES = "yes"
 WRITE_CONFIRM_DENY = "deny"
@@ -254,46 +255,81 @@ def _select_menu(options, prompt):
         return _select_menu_fallback(options, prompt)
 
     selected_index = 0
+    rendered_line_count = 0
     sys.stdout.write("\033[?25l")
     try:
         while True:
-            _draw_menu(options, prompt, selected_index)
+            rendered_line_count = _draw_menu(
+                options,
+                prompt,
+                selected_index,
+                rendered_line_count,
+            )
             key = _read_key()
             if key in ("\r", "\n"):
-                _finish_menu(options, prompt)
+                _finish_menu(rendered_line_count)
                 return selected_index
             if key == "\x1b[A":
                 selected_index = (selected_index - 1) % len(options)
             elif key == "\x1b[B":
                 selected_index = (selected_index + 1) % len(options)
             elif key in ("1", "y", "Y"):
-                _finish_menu(options, prompt)
+                _finish_menu(rendered_line_count)
                 return 0
             elif key in ("4", "n", "N"):
-                _finish_menu(options, prompt)
+                _finish_menu(rendered_line_count)
                 return len(options) - 1
     finally:
         sys.stdout.write("\033[?25h")
         sys.stdout.flush()
 
 
-def _draw_menu(options, prompt, selected_index):
-    prompt_lines = 0
+def _draw_menu(options, prompt, selected_index, previous_line_count=0):
+    if previous_line_count:
+        _clear_menu_frame(previous_line_count)
+
+    line_count = 0
+    width = _terminal_width()
+    prompt_style = _leading_ansi_style(prompt)
     if prompt:
-        prompt_lines = 1
-        sys.stdout.write(f"{CLEAR_LINE}{prompt}\n")
+        for line in _wrap_menu_text(prompt, width):
+            suffix = RESET if prompt_style else ""
+            sys.stdout.write(f"{CLEAR_LINE}{prompt_style}{line}{suffix}\n")
+            line_count += 1
+
     for index, option in enumerate(options):
         marker = ">" if index == selected_index else " "
         color = GREEN if index == selected_index else DIM
-        sys.stdout.write(f"{CLEAR_LINE}{color}{marker} {option}{RESET}\n")
-    sys.stdout.write(f"\033[{len(options) + prompt_lines}A")
+        option_lines = _wrap_menu_text(str(option), max(24, width - 2), "  ")
+        for line_index, line in enumerate(option_lines):
+            prefix = f"{marker} " if line_index == 0 else "  "
+            sys.stdout.write(f"{CLEAR_LINE}{color}{prefix}{line}{RESET}\n")
+            line_count += 1
+
+    sys.stdout.write(f"\033[{line_count}A")
+    sys.stdout.flush()
+    return line_count
+
+
+def _finish_menu(rendered_line_count):
+    sys.stdout.write(f"\033[{rendered_line_count}B\r")
     sys.stdout.flush()
 
 
-def _finish_menu(options, prompt):
-    prompt_lines = 1 if prompt else 0
-    sys.stdout.write(f"\033[{len(options) + prompt_lines}B\r")
-    sys.stdout.flush()
+def _clear_menu_frame(line_count):
+    for _ in range(line_count):
+        sys.stdout.write(f"{CLEAR_LINE}\033[1B")
+    sys.stdout.write(f"\033[{line_count}A")
+
+
+def _wrap_menu_text(text, width, subsequent_indent=""):
+    visible_text = _strip_ansi(text)
+    return _wrap_text(visible_text, width, subsequent_indent)
+
+
+def _leading_ansi_style(text):
+    match = re.match(r"^(?:\033\[[0-9;]*m)+", text or "")
+    return match.group(0) if match else ""
 
 
 def _read_key():
@@ -525,7 +561,7 @@ def _terminal_width():
 
 
 def _strip_ansi(text):
-    return re.sub(r"\033\[[0-9;]*m", "", text)
+    return ANSI_CODE_RE.sub("", text)
 
 
 def _clipboard_command():

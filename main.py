@@ -45,8 +45,8 @@ def main():
         validated_config.get("warning_token_limit"),
     )
 
-    setup_flow = SetupFlow(openai_manager, chat_history_manager)
-    is_setup_complete = setup_flow.is_steup_compleated()
+    setup_flow = SetupFlow(openai_manager)
+    is_setup_complete = setup_flow.is_setup_completed()
     if not is_setup_complete:
         setup_action = select_menu(
             ["Start", "Exit"],
@@ -55,8 +55,10 @@ def main():
         if setup_action == "Exit":
             print("Exiting ProxAI CLI.")
             sys.exit(0)
-
-        print("Starting setup...")
+        else:
+            print("Starting setup...")
+            setup_flow.begin_setup_flow()
+            
 
 
     print("User config validated. Proceeding with the application...")

@@ -2,6 +2,7 @@ from .service import Inputs
 from .terminal_ui import (
     BLUE,
     CYAN,
+    GREEN,
     RED,
     RESET,
     YELLOW,

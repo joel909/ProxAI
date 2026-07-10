@@ -1,32 +1,20 @@
-import importlib.util
-from pathlib import Path
-
-
-CHECK_SETUP_FILES_PATH = Path(__file__).with_name("check_setup_files.py")
-CHECK_SETUP_FILES_SPEC = importlib.util.spec_from_file_location(
-    "check_setup_files",
-    CHECK_SETUP_FILES_PATH,
-)
-
-if CHECK_SETUP_FILES_SPEC is None or CHECK_SETUP_FILES_SPEC.loader is None:
-    raise ImportError("Could not load check_setup_files.py")
-
-check_setup_files_module = importlib.util.module_from_spec(CHECK_SETUP_FILES_SPEC)
-CHECK_SETUP_FILES_SPEC.loader.exec_module(check_setup_files_module)
-check_setup_files = check_setup_files_module.check_setup_files
-
+from .check_setup_files import check_setup_files
+from .collect_device_info import collect_device_info
 
 class SetupFlow():
-    def __init__(self,llm_manager,chat_history_manager) -> None:
+    def __init__(self,llm_manager) -> None:
         pass
         self.llm_manager = llm_manager
-        self.chat_history_manager = chat_history_manager
 
-    def is_steup_compleated(self) -> bool:
-        return check_setup_files(verbose=False)
+    def check_setup_files(self) -> bool:
+        return check_setup_files()
+
+    def is_setup_completed(self) -> bool:
+        return self.check_setup_files()
+
     def begin_setup_flow(self):
-        if self.is_steup_compleated():
+        if self.is_setup_completed():
                 print("Setup is complete. You can now use the application.")
-        while True:
-                print("Setup is not complete. Please follow the prompts to complete the setup.")
-                check_setup_files(verbose=True)
+        else:
+            # print("Setup is not complete. Please follow the prompts to complete the setup.")
+            collect_device_info(self.llm_manager, self.is_setup_completed)

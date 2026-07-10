@@ -47,6 +47,8 @@ class OpenAIManager:
                 self.chat_history_manager,
                 self.warning_token_limit,
                 on_tool_call,
+                build_input_messages_function=custom_build_input_messages_function,
+                custom_available_tools=custom_available_tools,
             )
 
     def evaluate_llm_reply(self, llm_reply):
