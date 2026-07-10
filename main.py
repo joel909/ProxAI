@@ -10,13 +10,17 @@ from inputs import (
     YELLOW,
     LoadingSpinner,
     copy_code_block,
+    create_tool_call_handler,
     print_assistant_response,
+    select_menu,
 )
 from openAI_manager import OpenAIManager
 from storage import ChatHistoryManager
 from storage.tool_credentials import save_tool_api_key
 from storage.update_token_warn_limit import update_token_warning_limit
 from tools.setup_tools import setup_tools
+
+from setup_flow import SetupFlow
 
 
 def format_token_limit(token_limit):
@@ -41,7 +45,20 @@ def main():
         validated_config.get("warning_token_limit"),
     )
 
-    
+    setup_flow = SetupFlow(openai_manager, chat_history_manager)
+    is_setup_complete = setup_flow.is_steup_compleated()
+    if not is_setup_complete:
+        setup_action = select_menu(
+            ["Start", "Exit"],
+            f"{RED}Setup is not completed. Do you want to setup now or exit?{RESET}",
+        )
+        if setup_action == "Exit":
+            print("Exiting ProxAI CLI.")
+            sys.exit(0)
+
+        print("Starting setup...")
+
+
     print("User config validated. Proceeding with the application...")
     print(f"Provider: {validated_config['provider']}")
     print(f"Model: {validated_config['model']}")
@@ -104,14 +121,7 @@ def main():
         else:
             spinner = LoadingSpinner()
             spinner.start()
-
-            def show_tool_call(tool_name, event="started"):
-                spinner.stop()
-
-                if event == "started":
-                    print(f"{YELLOW}Tool requested: {tool_name}{RESET}")
-                elif event == "finished":
-                    spinner.start()
+            show_tool_call = create_tool_call_handler(spinner)
 
             try:
                 response = openai_manager.request_llm_reply(

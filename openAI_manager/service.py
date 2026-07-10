@@ -29,15 +29,25 @@ class OpenAIManager:
             if GPT_MODEL_PATTERN.match(model.id)
         )
 
-    def request_llm_reply(self, prompt, on_tool_call=None):
-        return request_reply_with_tool_loop(
-            prompt,
-            self.client,
-            self.model,
-            self.chat_history_manager,
-            self.warning_token_limit,
-            on_tool_call,
-        )
+    def request_llm_reply(self, prompt, on_tool_call=None,custom_build_input_messages_function=None,custom_available_tools=None):
+        if custom_build_input_messages_function is None and custom_available_tools is None:
+            return request_reply_with_tool_loop(
+                prompt,
+                self.client,
+                self.model,
+                self.chat_history_manager,
+                self.warning_token_limit,
+                on_tool_call,
+            )
+        else:
+            return request_reply_with_tool_loop(
+                prompt,
+                self.client,
+                self.model,
+                self.chat_history_manager,
+                self.warning_token_limit,
+                on_tool_call,
+            )
 
     def evaluate_llm_reply(self, llm_reply):
         return check_for_tool_calling(llm_reply, self.chat_history_manager)

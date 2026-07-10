@@ -69,6 +69,18 @@ class LoadingSpinner:
         sys.stdout.flush()
 
 
+def create_tool_call_handler(spinner):
+    def show_tool_call(tool_name, event="started"):
+        spinner.stop()
+
+        if event == "started":
+            print(f"{YELLOW}Tool requested: {tool_name}{RESET}")
+        elif event == "finished":
+            spinner.start()
+
+    return show_tool_call
+
+
 def render_assistant_response(text):
     if not text:
         return ""

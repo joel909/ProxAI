@@ -1,4 +1,4 @@
-tools = [{
+info_collector_agent_tools = [{
         "type": "function",
         "name": "read_memory",
         "description": """Call this tool if you need past conversation history to answer the user.
@@ -175,6 +175,21 @@ tools = [{
                  }
             },
             "required": ["question","options"]
+        }
+    },
+    {
+        "type": "function",
+        "name": "save_device_details",
+        "description": """Save the collected server/device details after all required data points have been collected. The data must be valid JSON. This tool writes the data to the correctly spelled manifest.json file in the project root.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                 "data":{
+                      "type":["object", "array", "string"],
+                      "description":"The complete collected device details as valid JSON."
+                 }
+            },
+            "required": ["data"]
         }
     }
 

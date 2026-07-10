@@ -1,6 +1,9 @@
 from tools.search_tools import FireCrawlTool
 from tools.use_desktop_tools import DesktopTools
 import json
+from .info_collector_agent.ask_question import ask_question
+from .info_collector_agent.ask_question_with_options import ask_question_with_options
+from .info_collector_agent.save_device_details import save_device_details
 from .request_llm_reply import build_input_messages, request_reply
 from .reply_flow_utils import (
     add_response_output,
@@ -20,10 +23,11 @@ def request_reply_with_tool_loop(
     warning_token_limit=None,
     on_tool_call=None,
     build_input_messages_function=build_input_messages,
+    custom_available_tools=None,
 ):
     search_tool = FireCrawlTool()
     desktop_tool = DesktopTools()
-    input_messages = build_input_messages(prompt)
+    input_messages = build_input_messages_function(prompt)
 
     while True:
         response_output, response_text = request_reply(
@@ -31,6 +35,7 @@ def request_reply_with_tool_loop(
             client,
             model,
             warning_token_limit,
+            custom_available_tools=custom_available_tools,
         )
 
         if response_text is None:
@@ -98,6 +103,18 @@ def run_tool_call(tool_call, search_tool, desktop_tool,  chat_history_manager):
         if tool_call.name == "run_command":
             arguments = parse_tool_arguments(tool_call)
             return desktop_tool.check_and_run_shell_command(arguments["command"])
+        if tool_call.name == "ask_question_with_options":
+            arguments = parse_tool_arguments(tool_call)
+            return ask_question_with_options(
+                arguments["question"],
+                arguments["options"],
+            )
+        if tool_call.name == "ask_question":
+            arguments = parse_tool_arguments(tool_call)
+            return ask_question(arguments["question"])
+        if tool_call.name == "save_device_details":
+            arguments = parse_tool_arguments(tool_call)
+            return save_device_details(arguments["data"])
 
         return {"error": f"Unsupported tool call: {tool_call.name}"}
     except Exception as e:

@@ -33,7 +33,7 @@ def build_input_messages(prompt):
         {"role": "developer", "content": "Once you search for websites using the search tool and need to get information from website links please use the read_website tool and do not make assumptions about the content of the website."},
         {"role": "developer", "content": "Please run any command which will help you understand the system better but please do not change any setting of the server."},
         
-        {"role": "system", "content": "Please output a JSON as the output when everything is done and make sure the JSON is valid and has all the mandatory data points and any extra data points you have collected."},
+        {"role": "system", "content": "When everything is done, call save_device_details with valid JSON that includes all mandatory data points and any extra data points you collected. Do not save misspelled manifest filenames; the tool writes manifest.json."},
         {"role": "system", "content": ("Do not output the final JSON until all required data points have either: \n"
             "1. been collected\n"
             "2. been marked as unknown, or\n"
