@@ -1,9 +1,6 @@
 from tools.search_tools import FireCrawlTool
 from tools.use_desktop_tools import DesktopTools
 import json
-from .info_collector_agent.ask_question import ask_question
-from .info_collector_agent.ask_question_with_options import ask_question_with_options
-from .info_collector_agent.save_device_details import save_device_details
 from .request_llm_reply import build_input_messages, request_reply
 from .reply_flow_utils import (
     add_response_output,
@@ -12,6 +9,11 @@ from .reply_flow_utils import (
     notify_tool_calls,
     read_memory,
     record_final_response,
+)
+from server_info_collector import (
+    ask_question,
+    ask_question_with_options,
+    save_device_details,
 )
 
 

@@ -7,8 +7,7 @@ from inputs import (
     create_tool_call_handler,
     print_assistant_response,
 )
-from openAI_manager.info_collector_agent.build_input_messages import build_input_messages
-from openAI_manager.info_collector_agent.info_collecter_agent_tools import info_collector_agent_tools
+from server_info_collector import build_input_messages, info_collector_agent_tools
 def collect_device_info(llm_manager,is_setup_completed):
     while True:
         spinner = LoadingSpinner()
@@ -39,4 +38,3 @@ def collect_device_info(llm_manager,is_setup_completed):
                 break
             else:
                 print_assistant_response(response)
-

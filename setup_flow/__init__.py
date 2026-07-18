@@ -1,5 +1,6 @@
 from .check_setup_files import check_setup_files
 from .collect_device_info import collect_device_info
+from .generate_manifest import generate_manifest
 
 class SetupFlow():
     def __init__(self,llm_manager) -> None:
