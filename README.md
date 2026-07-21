@@ -15,6 +15,27 @@ ProxAI is my work-in-progress project for integrating LLMs with my own tools and
 - Early work in progress
 - Still being shaped as I learn and build
 
+## Run on Linux
+
+ProxAI uses a project-local Python environment, so it does not depend on a
+machine-specific path or username. Python 3.10 or newer is required.
+
+After cloning the repository, run:
+
+```bash
+./setup_flow/setup.sh
+./setup_flow/run.sh
+```
+
+`setup_flow/setup.sh` creates `.venv`, installs the packages in
+`requirements.txt`, and generates `manifest.json` for the current device. Run
+it again whenever the dependencies or device configuration change. The `.venv`
+directory is local to each machine and should not be copied or committed.
+
+If your distribution reports that the `venv` module is missing, install its
+Python venv package (for example, `python3-venv` on Debian or Ubuntu) and rerun
+the setup command.
+
 ## Notes
 
 More details will be added as the project grows.

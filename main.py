@@ -46,20 +46,9 @@ def main():
     )
 
     setup_flow = SetupFlow(openai_manager)
-    is_setup_complete = setup_flow.is_setup_completed()
-    if not is_setup_complete:
-        setup_action = select_menu(
-            ["Start", "Exit"],
-            f"{RED}Setup is not completed. Do you want to setup now or exit?{RESET}",
-        )
-        if setup_action == "Exit":
-            print("Exiting ProxAI CLI.")
-            sys.exit(0)
-        else:
-            print("Starting setup...")
-            setup_flow.begin_setup_flow()
-            
 
+    print("Generating system info...")
+    setup_flow.begin_setup_flow()  
 
     print("User config validated. Proceeding with the application...")
     print(f"Provider: {validated_config['provider']}")

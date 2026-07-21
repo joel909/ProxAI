@@ -191,6 +191,24 @@ info_collector_agent_tools = [{
             },
             "required": ["data"]
         }
+    },{
+        "type": "function",
+        "name": "edit_manifest_code",
+        "description": """Replace setup_flow/generate_manifest.py with complete, verified Python source code.
+        Use only after inspecting the current generator and gathering evidence with read-only commands.
+        The application will ask the user for permission before writing the file.
+        After a successful write, run the generator and validate manifest.json before reporting success.
+        """,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                 "content":{
+                      "type":"string",
+                      "description":"The complete latest working Python source code for setup_flow/generate_manifest.py. Do not send a patch or snippet."
+                 }
+            },
+            "required": ["content"]
+        }
     }
 
     

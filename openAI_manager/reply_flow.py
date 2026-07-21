@@ -1,6 +1,7 @@
 from tools.search_tools import FireCrawlTool
 from tools.use_desktop_tools import DesktopTools
 import json
+from pathlib import Path
 from .request_llm_reply import build_input_messages, request_reply
 from .reply_flow_utils import (
     add_response_output,
@@ -15,6 +16,10 @@ from server_info_collector import (
     ask_question_with_options,
     save_device_details,
 )
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MANIFEST_GENERATOR_DIR = PROJECT_ROOT / "setup_flow"
 
 
 def request_reply_with_tool_loop(
@@ -117,6 +122,14 @@ def run_tool_call(tool_call, search_tool, desktop_tool,  chat_history_manager):
         if tool_call.name == "save_device_details":
             arguments = parse_tool_arguments(tool_call)
             return save_device_details(arguments["data"])
+
+        if tool_call.name == "edit_manifest_code":
+            arguments = parse_tool_arguments(tool_call)
+            return desktop_tool.write_to_file(
+                str(MANIFEST_GENERATOR_DIR),
+                arguments["content"],
+                "generate_manifest.py",
+            )
 
         return {"error": f"Unsupported tool call: {tool_call.name}"}
     except Exception as e:
