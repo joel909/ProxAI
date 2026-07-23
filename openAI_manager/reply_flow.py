@@ -17,6 +17,7 @@ def request_reply_with_tool_loop(
     prompt,
     client,
     model,
+    system_configuration,
     chat_history_manager,
     warning_token_limit=None,
     on_tool_call=None,
@@ -25,7 +26,7 @@ def request_reply_with_tool_loop(
 ):
     search_tool = FireCrawlTool()
     desktop_tool = DesktopTools()
-    input_messages = build_input_messages_function(prompt)
+    input_messages = build_input_messages_function(prompt,system_configuration)
 
     while True:
         response_output, response_text = request_reply(

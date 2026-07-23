@@ -1,12 +1,11 @@
 from .check_setup_files import check_setup_files
 from .collect_device_info import collect_device_info
 from .generate_manifest import (
-    generate_manifest,
     generate_manifests,
     is_manifest_failure_test_pending,
     run_all,
 )
-
+from .fetch_config_files import fetch_config_file
 class SetupFlow():
     def __init__(self,llm_manager) -> None:
         pass
@@ -23,3 +22,6 @@ class SetupFlow():
     def begin_setup_flow(self):
         # print("Setup is not complete. Please follow the prompts to complete the setup.")
         collect_device_info(self.llm_manager, self.is_setup_completed)
+    def fetch_config_files(self):
+        return fetch_config_file()
+

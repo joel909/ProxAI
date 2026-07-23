@@ -29,12 +29,13 @@ class OpenAIManager:
             if GPT_MODEL_PATTERN.match(model.id)
         )
 
-    def request_llm_reply(self, prompt, on_tool_call=None,custom_build_input_messages_function=None,custom_available_tools=None):
+    def request_llm_reply(self, prompt,system_configuration, on_tool_call=None,custom_build_input_messages_function=None,custom_available_tools=None):
         if custom_build_input_messages_function is None and custom_available_tools is None:
             return request_reply_with_tool_loop(
                 prompt,
                 self.client,
                 self.model,
+                system_configuration,
                 self.chat_history_manager,
                 self.warning_token_limit,
                 on_tool_call,

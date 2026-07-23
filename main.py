@@ -49,6 +49,7 @@ def main():
 
     print("Generating system info...")
     setup_flow.begin_setup_flow()  
+    system_configuration = setup_flow.fetch_config_files()
 
     print("User config validated. Proceeding with the application...")
     print(f"Provider: {validated_config['provider']}")
@@ -118,6 +119,8 @@ def main():
                 response = openai_manager.request_llm_reply(
                     user_input,
                     on_tool_call=show_tool_call,
+                    system_configuration=system_configuration
+
                 )
             finally:
                 spinner.stop()
