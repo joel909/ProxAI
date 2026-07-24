@@ -1,5 +1,4 @@
 import importlib
-import os
 import unittest
 from unittest.mock import Mock, patch
 
@@ -13,18 +12,6 @@ class CollectDeviceInfoTests(unittest.TestCase):
 
         self.assertTrue(any("def build_manifest():" in content for content in contents))
         self.assertTrue(any("edit_manifest_code" in content for content in contents))
-
-    def test_manifest_failure_hook_is_opt_in(self):
-        module = importlib.import_module("setup_flow.generate_manifest")
-
-        with (
-            patch.dict(os.environ, {"PROXAI_TEST_MANIFEST_FAILURE": "1"}),
-            patch.object(module, "_TEST_FAILURE_TRIGGERED", False),
-        ):
-            self.assertTrue(module.is_manifest_failure_test_pending())
-            with self.assertRaisesRegex(RuntimeError, "Intentional manifest-generation"):
-                module.generate_manifests()
-            self.assertFalse(module.is_manifest_failure_test_pending())
 
     def test_successful_manifest_generation_does_not_start_ai_repair(self):
         module = importlib.import_module("setup_flow.collect_device_info")

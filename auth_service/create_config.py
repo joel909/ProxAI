@@ -8,10 +8,6 @@ from .validate_current_config import validate_current_config_and_fetch_models
 from sqlalchemy.exc import IntegrityError
 
 
-def get_api_key_env_var_name(provider):
-    return f"PROXAI_{provider.upper()}_API_KEY"
-
-
 PROVIDER_OPTIONS = ["OpenAI", "HackclubAI", "Other"]
 DEFAULT_WARNING_TOKEN_LIMIT = 100000
 WARNING_TOKEN_LIMIT_OPTIONS = ["100k (recommended)", "50k", "200k", "500k", "Custom"]
@@ -88,7 +84,6 @@ def create_config(isStratup=True):
 
     print(f"Provider: {provider}")
     config = {
-        "api_key_env_var": get_api_key_env_var_name(provider),
         "provider": provider,
         "model": None,
     }
@@ -112,7 +107,6 @@ def create_config(isStratup=True):
 
             api_key = Inputs.getInput(f"{CYAN}Re-enter your API key{RESET}", result_type=str)
             config["provider"] = provider
-            config["api_key_env_var"] = get_api_key_env_var_name(provider)
         except Exception as e:
             spinner.stop()
             print(f"{RED}An error occurred while validating the config: {e}{RESET}")

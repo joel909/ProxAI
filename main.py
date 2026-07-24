@@ -18,7 +18,7 @@ from openAI_manager import OpenAIManager
 from storage import ChatHistoryManager
 from storage.tool_credentials import save_tool_api_key
 from storage.update_token_warn_limit import update_token_warning_limit
-from tools.setup_tools import setup_tools
+from tools.setup_tools_manager import setup_tools
 
 from setup_flow import SetupFlow
 
@@ -69,7 +69,6 @@ def main():
             print(f"{YELLOW}/exit{RESET}   Exit the application")
             print(f"{YELLOW}/copy N{RESET} Copy code block N from the last response")
             print(f"{YELLOW}/token-warn-limit{RESET} Update the token warning limit")
-            print(f"{YELLOW}/firecrawl-key{RESET} Add or update the Firecrawl API key")
             print(f"{YELLOW}/setup-tools{RESET} Show tools pending setup")
             # Add more commands as needed
         elif user_input.lower() == "/token-warn-limit":
@@ -87,16 +86,7 @@ def main():
                 )
             except Exception as e:
                 print(f"{RED}Error updating token warning limit: {e}{RESET}")
-        elif user_input.lower() == "/firecrawl-key":
-            try:
-                api_key = Inputs.getInput(
-                    f"{CYAN}Enter your Firecrawl API key{RESET}",
-                    result_type=str,
-                )
-                save_tool_api_key("firecrawl", api_key)
-                print(f"{YELLOW}Firecrawl API key saved.{RESET}")
-            except Exception as e:
-                print(f"{RED}Error saving Firecrawl API key: {e}{RESET}")
+
         elif user_input.lower() == "/setup-tools":
             setup_tools()
         elif user_input.lower().startswith("/copy"):

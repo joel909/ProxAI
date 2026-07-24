@@ -1,6 +1,5 @@
 import ipaddress
 import json
-import os
 import platform
 import re
 import socket
@@ -11,7 +10,6 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_FILE = PROJECT_ROOT / "manifest.json"
-_TEST_FAILURE_TRIGGERED = False
 
 
 def run(command, timeout=6):
@@ -517,22 +515,7 @@ def run_all(manifest_file=MANIFEST_FILE):
 
 def generate_manifests(manifest_file=MANIFEST_FILE):
     """Public entry point for generating the complete device manifest."""
-    global _TEST_FAILURE_TRIGGERED
-
-    if is_manifest_failure_test_pending():
-        _TEST_FAILURE_TRIGGERED = True
-        raise RuntimeError(
-            "Intentional manifest-generation failure for AI recovery testing."
-        )
     return run_all(manifest_file)
-
-
-def is_manifest_failure_test_pending():
-    """Return whether the one-time AI recovery test failure is still pending."""
-    return (
-        os.environ.get("PROXAI_TEST_MANIFEST_FAILURE") == "1"
-        and not _TEST_FAILURE_TRIGGERED
-    )
 
 
 def main():

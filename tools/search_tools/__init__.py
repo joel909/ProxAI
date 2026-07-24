@@ -13,9 +13,7 @@ CLEAR_LINE = "\r\033[K"
 class FireCrawlTool:
     def __init__(self, api_key=None):
         if api_key is None:
-            import os
-
-            api_key = get_tool_api_key("firecrawl") or os.environ.get("FIRECRAWL_API_KEY")
+            api_key = get_tool_api_key("firecrawl")
 
         self.api_key = api_key
         self.app = None

@@ -3,9 +3,8 @@ import random
 import string
 from typing import Optional
 
-from sqlalchemy import UniqueConstraint, create_engine, select
+from sqlalchemy import ForeignKey, UniqueConstraint, create_engine, inspect, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
-from sqlalchemy import ForeignKey
 
 class Base(DeclarativeBase):
     pass
@@ -55,17 +54,41 @@ class ToolCredentialTable(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     provider: Mapped[str] = mapped_column(nullable=False, unique=True)
     api_key: Mapped[Optional[str]] = mapped_column(nullable=True)
+    required_token: Mapped[Optional[str]] = mapped_column(nullable=True)
     enabled: Mapped[bool] = mapped_column(default=True)
 
 engine = create_engine("sqlite:///assistant.db")
 Base.metadata.create_all(engine)
 
+
+def migrate_tool_credentials_schema():
+    """Add credential metadata columns for databases created by older releases."""
+    column_names = {
+        column["name"]
+        for column in inspect(engine).get_columns(ToolCredentialTable.__tablename__)
+    }
+    if "required_token" not in column_names:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE tool_credentials ADD COLUMN required_token VARCHAR")
+            )
+
+
+migrate_tool_credentials_schema()
+
 DEFAULT_TOOL_CREDENTIALS = [
     {
         "provider": "firecrawl",
         "api_key": None,
+        "required_token": "API Key",
         "enabled": True,
     },
+    {
+        "provider":"github",
+        "api_key": None,
+        "required_token": "PAT token",
+        "enabled": True,
+    }
 ]
 
 
@@ -77,17 +100,24 @@ def prefill_tool_credentials():
             credential for credential in DEFAULT_TOOL_CREDENTIALS
             if credential["provider"] not in existing_providers
         ]
-        if not missing_credentials:
-            return
-
         session.add_all(
             ToolCredentialTable(
                 provider=credential["provider"],
                 api_key=credential["api_key"],
+                required_token=credential["required_token"],
                 enabled=credential["enabled"],
             )
             for credential in missing_credentials
         )
+
+        required_tokens = {
+            credential["provider"]: credential["required_token"]
+            for credential in DEFAULT_TOOL_CREDENTIALS
+        }
+        for credential in session.scalars(select(ToolCredentialTable)):
+            if credential.provider in required_tokens:
+                credential.required_token = required_tokens[credential.provider]
+
         session.commit()
 
 

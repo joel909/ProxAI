@@ -2,7 +2,7 @@ import os
 import re
 
 from inputs.terminal_ui import BOLD, BRIGHT_RED, RESET, WRITE_CONFIRM_YES, confirm_user_permission
-from tools.use_desktop_tools.run_shell import run_shell_command
+from tools.destop_tools.run_shell import run_shell_command
 from .read_file import read_file
 from .write_file import write_file
 
