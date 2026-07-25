@@ -79,20 +79,27 @@ class SetupToolsTests(unittest.TestCase):
                 "select_menu",
                 return_value="Setup Github PAT token",
             ) as menu,
+            mock.patch.object(setup_tools, "show_github_pat_setup_instructions"),
             mock.patch("sys.stdout", new=io.StringIO()),
         ):
             setup_tools.setup_tools()
 
         menu.assert_called_once_with(["Setup Github PAT token", "Exit"], "")
 
-    def test_github_setup_highlights_repository_access_and_expiration(self):
-        with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
+    def test_github_setup_highlights_classic_pat_private_repo_access_and_expiration(self):
+        with (
+            mock.patch.object(github_setup.Inputs, "getInput", return_value="test-pat"),
+            mock.patch.object(github_setup, "validate_github_pull_with_PAT") as validate,
+            mock.patch("sys.stdout", new=io.StringIO()) as stdout,
+        ):
             github_setup.show_github_pat_setup_instructions()
 
         output = stdout.getvalue()
-        self.assertIn("fine-grained personal access token", output)
-        self.assertIn("\033[31mAll repositories\033[0m", output)
+        self.assertIn("\033[31mpersonal access token (classic)\033[0m", output)
+        self.assertIn("\033[31mTokens (classic)\033[0m", output)
+        self.assertIn("\033[31mprivate repositories\033[0m", output)
         self.assertIn("\033[31mexpiration date\033[0m", output)
+        validate.assert_called_once_with("test-pat")
 
     def test_selecting_github_shows_pat_guidance(self):
         with (
