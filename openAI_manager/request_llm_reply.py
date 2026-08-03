@@ -18,6 +18,7 @@ def build_input_messages(prompt,system_configuration):
         {"role": "developer", "content": "once u search for websites using the search tool and if you need to get the information from the website links please use the read_website tool and do not make assumptions about the content of the website."},
         {"role": "developer", "content": "Before running code or shell commands that might affect the whole system, ask the user for explicit permission in plain text first and do not call run_command until they confirm. Start that warning line exactly like this: [[running this code might break system]]. Treat commands using sudo/su, package managers, system services, disk/partition tools, chmod/chown on system paths, rm -rf, writes under /etc /usr /bin /sbin /lib /boot /var, or curl/wget piped into a shell as system-risk commands."},
         {"role": "system", "content": f"below is the system configuration of this system refer to this before running any commands and try to make it work for this server \n {system_configuration}"},
+        {"role": "system", "content": "Sine the user has the ability to clone repos from github all the github repos are stored in the home directory of the user in a folder called ProxAI/github-repos so if the users asks to update fetch or anything read that first if a github repo is already cloned and then do the needfull by going into that repo DO NOT CLONE the repo again if it is already cloned until and unless the user asks you to PLEASE CLONE AGAIN dont do it!!"},
         {"role": "user", "content": prompt},
     ]
 
@@ -162,10 +163,77 @@ tools = [{
                  }
             },
             "required": ["filePath"]
+        },
+        
+    },
+    {
+            "type": "function",
+            "name": "list_github_repos",
+            "description": """"description": "List all 
+            repositories in the user's GitHub account. Use this when the user asks to see their repos, list their repositories, or 
+            wants to pull/clone a repo from their GitHub account. Read-only — does not require write access.",
+                        """,
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            },
+    },
+    {
+                "type": "function",
+                "name": "clone_github_repo",
+                "description": """Clone a repository from the user's GitHub account onto their local machine.
+                Use this when the user asks to clone one of their GitHub repositories.
+                This operation writes the repository's files to the selected local destination.""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "repo_url": {
+                            "type": "string",
+                            "description": "GitHub repository URL or owner/repository name to clone."
+                        }
+                    },
+                    "required": ["repo_url"]
+                },
+        },
+    {
+                "type": "function",
+                "name": "fetched_pre_cloned_repos",
+                "description": """List GitHub repositories that are already cloned locally.
+                Use this when the user asks which repositories have already been cloned or where a cloned repository is stored.
+                This read-only operation checks the user's ProxAI/github-repos directory and returns repository names and local paths.""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                },
+        },
+        {
+            "type": "function",
+            "name": "pull_github_repo",
+            "description": (
+                "Pull the latest changes for an existing GitHub repository cloned under "
+                "~/ProxAI/github-repos. Never clone a missing repository."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "repo_name": {
+                        "type": "string",
+                        "description": (
+                            "Exact local repository directory name, such as "
+                            "'3d-web-viewer'. Do not provide a path."
+                        ),
+                    }
+                },
+                "required": ["repo_name"],
+                "additionalProperties": False,
+            },
         }
-    }
+    
     
     ]
+
+
+
 def request_reply(input_messages, client, model, warning_token_limit=None,tools=tools,custom_available_tools=None):
     
     if not model:

@@ -1,3 +1,9 @@
+from tools.github.fetch_repos import fetch_repos
+from tools.github.fetch_pre_cloned_repos import fetch_pre_cloned_repos
+from tools.github.clone_repo import clone_github_repo, normalize_github_repo
+from tools.github.pull_repo import pull_github_repo
+from storage.tool_credentials import get_tool_api_key
+
 from .reply_flow_utils import read_memory
 import json
 from server_info_collector import (
@@ -7,11 +13,11 @@ from server_info_collector import (
 )
 from pathlib import Path
 
-
 def parse_tool_arguments(tool_call):
     if not tool_call.arguments:
         return {}
     return json.loads(tool_call.arguments)
+
 
 def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_manager):
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -64,7 +70,28 @@ def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_m
                 arguments["content"],
                 "generate_manifest.py",
             )
-
+        if tool_call.name == "read_manifest_code":
+            arguments = parse_tool_arguments(tool_call)
+            return desktop_tool.read_file(str(MANIFEST_GENERATOR_DIR / "generate_manifest.py"))
+        
+        if tool_call.name == "list_github_repos":
+            PAT = get_tool_api_key("github")
+            return fetch_repos(PAT)
+        if tool_call.name == "fetched_pre_cloned_repos":
+            return fetch_pre_cloned_repos()
+        if tool_call.name == "pull_github_repo":
+            arguments = parse_tool_arguments(tool_call)
+            return pull_github_repo(arguments["repo_name"])
+        if tool_call.name == "clone_github_repo":
+            arguments = parse_tool_arguments(tool_call)
+            PAT = get_tool_api_key("github")
+            repo_url = arguments["repo_url"]
+            repo_name = normalize_github_repo(repo_url)
+            clone_root = Path.home() / "ProxAI" / "github-repos"
+            clone_root.mkdir(parents=True, exist_ok=True)
+            destination = clone_root / repo_name.rsplit("/", 1)[-1]
+            return clone_github_repo(PAT, repo_name, str(destination))
+        
         return {"error": f"Unsupported tool call: {tool_call.name}"}
     except Exception as e:
         return {"error": f"{tool_call.name} failed: {e}"}
