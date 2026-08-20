@@ -1,7 +1,10 @@
 from tools.github.fetch_repos import fetch_repos
 from tools.github.fetch_pre_cloned_repos import fetch_pre_cloned_repos
 from tools.github.clone_repo import clone_github_repo, normalize_github_repo
+from tools.github.explore_repository import explore_repository
 from tools.github.pull_repo import pull_github_repo
+from tools.github.unset_repository import unset_repository
+from tools.docker import list_docker_containers
 from storage.tool_credentials import get_tool_api_key
 
 from .reply_flow_utils import read_memory
@@ -12,6 +15,7 @@ from server_info_collector import (
     save_device_details,
 )
 from pathlib import Path
+from var_files import GITHUB_REPOS_DIR
 
 def parse_tool_arguments(tool_call):
     if not tool_call.arguments:
@@ -87,10 +91,17 @@ def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_m
             PAT = get_tool_api_key("github")
             repo_url = arguments["repo_url"]
             repo_name = normalize_github_repo(repo_url)
-            clone_root = Path.home() / "ProxAI" / "github-repos"
+            clone_root = GITHUB_REPOS_DIR
             clone_root.mkdir(parents=True, exist_ok=True)
             destination = clone_root / repo_name.rsplit("/", 1)[-1]
             return clone_github_repo(PAT, repo_name, str(destination))
+        if tool_call.name == "list_docker_containers":
+            return list_docker_containers()
+        if tool_call.name == "explore_repository":
+            arguments = parse_tool_arguments(tool_call)
+            return explore_repository(arguments["repo_name"])
+        if tool_call.name == "unset_repository":
+            return unset_repository()
         
         return {"error": f"Unsupported tool call: {tool_call.name}"}
     except Exception as e:

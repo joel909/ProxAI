@@ -88,6 +88,12 @@ DEFAULT_TOOL_CREDENTIALS = [
         "api_key": None,
         "required_token": "PAT token",
         "enabled": True,
+    },
+    {
+        "provider":"Cloudflare",
+        "api_key": None,
+        "required_token": "API token",
+        "enabled": True,
     }
 ]
 

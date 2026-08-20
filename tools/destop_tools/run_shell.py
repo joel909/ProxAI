@@ -5,10 +5,13 @@ import sys
 import threading
 import time
 
+from var_files import get_active_repository_path
+
 
 def run_shell_command(command):
     stdout_lines = []
     stderr_lines = []
+    active_repository_path = get_active_repository_path()
 
     try:
         process = subprocess.Popen(
@@ -18,6 +21,7 @@ def run_shell_command(command):
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
+            cwd=str(active_repository_path) if active_repository_path is not None else None,
         )
 
         display = _LiveCommandDisplay(command)

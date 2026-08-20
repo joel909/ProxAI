@@ -19,6 +19,8 @@ def build_input_messages(prompt,system_configuration):
         {"role": "developer", "content": "Before running code or shell commands that might affect the whole system, ask the user for explicit permission in plain text first and do not call run_command until they confirm. Start that warning line exactly like this: [[running this code might break system]]. Treat commands using sudo/su, package managers, system services, disk/partition tools, chmod/chown on system paths, rm -rf, writes under /etc /usr /bin /sbin /lib /boot /var, or curl/wget piped into a shell as system-risk commands."},
         {"role": "system", "content": f"below is the system configuration of this system refer to this before running any commands and try to make it work for this server \n {system_configuration}"},
         {"role": "system", "content": "Sine the user has the ability to clone repos from github all the github repos are stored in the home directory of the user in a folder called ProxAI/github-repos so if the users asks to update fetch or anything read that first if a github repo is already cloned and then do the needfull by going into that repo DO NOT CLONE the repo again if it is already cloned until and unless the user asks you to PLEASE CLONE AGAIN dont do it!!"},
+        {"role": "system", "content": "When the user asks to explore or work with a repository but has not specified which repository, call the list_github_repos tool and present the returned repository list to the user so they can choose one. Do not guess a repository."},
+        {"role": "system", "content": "If the user asks you write a DockerFile, Start my exploring the Repo by first reading the readme file and then check if there is a dockerfile or docker-compose.yml already present in the repo if yes then read it and make sure it is customised for this Server/PC and if not gain the information needed and update the dockerfile or the docker-compose.yml file"},
         {"role": "user", "content": prompt},
     ]
 
@@ -225,6 +227,57 @@ tools = [{
                     }
                 },
                 "required": ["repo_name"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "type": "function",
+            "name": "list_docker_containers",
+            "description": (
+                "List all Docker containers on the user's machine, including running "
+                "and stopped containers. This is a read-only operation equivalent to "
+                "running `docker ps -a`."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
+        },
+        {
+            "type": "function",
+            "name": "explore_repository",
+            "description": (
+                "Set an already cloned GitHub repository as the active repository path. "
+                "Use this before searching or exploring a repository so its files become "
+                "available and easier to inspect. The tool returns an error if the requested "
+                "repository is not cloned locally."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "repo_name": {
+                        "type": "string",
+                        "description": (
+                            "Exact directory name of the locally cloned repository to set "
+                            "as the active repository path."
+                        ),
+                    }
+                },
+                "required": ["repo_name"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "type": "function",
+            "name": "unset_repository",
+            "description": (
+                "Unset the active repository path so future shell commands no longer run "
+                "from the previously selected repository."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
                 "additionalProperties": False,
             },
         }

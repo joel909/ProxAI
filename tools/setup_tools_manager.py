@@ -31,5 +31,7 @@ def setup_tools():
         setup_firecrawl()
     elif selected_provider == "github":
         show_github_pat_setup_instructions()
+    elif selected_provider == "Cloudflare":
+        
     else:
         print(f"{YELLOW}{selected_provider.title()} setup is not implemented yet.{RESET}")

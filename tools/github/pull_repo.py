@@ -3,6 +3,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from var_files import GITHUB_REPOS_DIR
+
 
 _CREDENTIAL_PATTERN = re.compile(r"(https?://)[^/@\s]+@", re.IGNORECASE)
 
@@ -42,7 +44,7 @@ def pull_github_repo(repo_name, clone_root=None):
     root = (
         Path(clone_root).expanduser().resolve()
         if clone_root is not None
-        else (Path.home() / "ProxAI" / "github-repos").resolve()
+        else GITHUB_REPOS_DIR.resolve()
     )
     repo_path = (root / repo_name).resolve()
 
@@ -85,6 +87,3 @@ def pull_github_repo(repo_name, clone_root=None):
         "updated": before_commit != after_commit,
         "output": output,
     }
-
-
-

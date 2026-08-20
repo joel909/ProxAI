@@ -1,8 +1,10 @@
 from pathlib import Path
 
+from var_files import GITHUB_REPOS_DIR
+
 
 def fetch_pre_cloned_repos(clone_root=None):
-    root = Path(clone_root) if clone_root is not None else Path.home() / "ProxAI" / "github-repos"
+    root = Path(clone_root) if clone_root is not None else GITHUB_REPOS_DIR
     if not root.is_dir():
         return []
 
