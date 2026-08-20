@@ -3,6 +3,7 @@ from storage import DEFAULT_TOOL_CREDENTIALS
 from storage.tool_credentials import get_tool_api_key, get_tool_credential
 from tools.setup_tools.setup_firecrawl import setup_firecrawl
 from tools.setup_tools.setup_github import show_github_pat_setup_instructions
+from tools.cloudflare_tunnels.setup_cloudflare import setup_cloudflare_token
 
 EXIT_OPTION = "Exit"
 
@@ -32,6 +33,6 @@ def setup_tools():
     elif selected_provider == "github":
         show_github_pat_setup_instructions()
     elif selected_provider == "Cloudflare":
-        
+        setup_cloudflare_token()
     else:
         print(f"{YELLOW}{selected_provider.title()} setup is not implemented yet.{RESET}")
