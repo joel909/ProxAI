@@ -1,5 +1,5 @@
 import re
-from .check_for_tool_calling import check_for_tool_calling
+from .tool_calling_logic import check_for_tool_calling
 from openai import OpenAI
 from .reply_flow import request_reply_with_tool_loop
 

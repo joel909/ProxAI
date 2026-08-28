@@ -5,7 +5,8 @@ from tools.github.explore_repository import explore_repository
 from tools.github.pull_repo import pull_github_repo
 from tools.github.unset_repository import unset_repository
 from tools.docker import list_docker_containers
-from storage.tool_credentials import get_tool_api_key
+from tools.cloudflare_tunnels.list_cloudflare_domains import list_cloudflare_domains
+from storage.tool_credentials import get_tool_api_key, get_tool_help
 
 from .reply_flow_utils import read_memory
 import json
@@ -34,6 +35,10 @@ def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_m
         if tool_call.name == "read_memory":
             arguments = parse_tool_arguments(tool_call)
             return read_memory(chat_history_manager, include_tool_outputs=arguments["include_tool_outputs"])
+
+        if tool_call.name == "tool_help":
+            arguments = parse_tool_arguments(tool_call)
+            return get_tool_help(arguments["tool"])
         
 
         if tool_call.name == "read_website":
@@ -97,11 +102,17 @@ def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_m
             return clone_github_repo(PAT, repo_name, str(destination))
         if tool_call.name == "list_docker_containers":
             return list_docker_containers()
+        if tool_call.name == "list_cloudflare_domains":
+            return list_cloudflare_domains()
         if tool_call.name == "explore_repository":
             arguments = parse_tool_arguments(tool_call)
             return explore_repository(arguments["repo_name"])
         if tool_call.name == "unset_repository":
             return unset_repository()
+        if tool_call.name == "create_cloudflare_tunnel":
+            arguments = parse_tool_arguments(tool_call)
+            from tools.cloudflare_tunnels.create_cloudflare_tunnel import create_cloudflare_tunnel
+            return create_cloudflare_tunnel(arguments["tunnel_name"])
         
         return {"error": f"Unsupported tool call: {tool_call.name}"}
     except Exception as e:

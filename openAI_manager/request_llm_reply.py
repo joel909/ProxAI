@@ -1,5 +1,7 @@
 import json
 
+from storage.tool_credentials import list_tool_providers
+
 from .calculate_total_tokens import calculate_total_tokens
 from .warn_token_limit import warn_token_limit
 
@@ -16,6 +18,7 @@ def build_input_messages(prompt,system_configuration):
         {"role": "developer", "content": "You are a helpful and accurate Platform Engineer. Before answering, identify the user's core objective and define the key requirements for a successful response. Then internally evaluate whether your planned answer satisfies those requirements, is factually correct, and directly addresses the user's goal. Optimize for usefulness, clarity, and correctness while keeping responses concise and avoiding unnecessary verbosity."},
         {"role": "developer", "content": "when you are about to write a file and do not know the filepath or file name please ask the user for it and do not make assumptions. if you are not sure about the content to write please ask the user for it and do not make assumptions."},
         {"role": "developer", "content": "once u search for websites using the search tool and if you need to get the information from the website links please use the read_website tool and do not make assumptions about the content of the website."},
+        {"role": "developer", "content": "When the user asks how to configure an external tool, or a tool output reports a missing, invalid, expired, or under-permissioned credential, call tool_help for that provider. Turn its setup_instructions into clear ordered steps and apply any troubleshooting that matches the error. Never ask the user to paste credentials into chat; direct them to /setup-tools."},
         {"role": "developer", "content": "Before running code or shell commands that might affect the whole system, ask the user for explicit permission in plain text first and do not call run_command until they confirm. Start that warning line exactly like this: [[running this code might break system]]. Treat commands using sudo/su, package managers, system services, disk/partition tools, chmod/chown on system paths, rm -rf, writes under /etc /usr /bin /sbin /lib /boot /var, or curl/wget piped into a shell as system-risk commands."},
         {"role": "system", "content": f"below is the system configuration of this system refer to this before running any commands and try to make it work for this server \n {system_configuration}"},
         {"role": "system", "content": "Sine the user has the ability to clone repos from github all the github repos are stored in the home directory of the user in a folder called ProxAI/github-repos so if the users asks to update fetch or anything read that first if a github repo is already cloned and then do the needfull by going into that repo DO NOT CLONE the repo again if it is already cloned until and unless the user asks you to PLEASE CLONE AGAIN dont do it!!"},
@@ -23,6 +26,34 @@ def build_input_messages(prompt,system_configuration):
         {"role": "system", "content": "If the user asks you write a DockerFile, Start my exploring the Repo by first reading the readme file and then check if there is a dockerfile or docker-compose.yml already present in the repo if yes then read it and make sure it is customised for this Server/PC and if not gain the information needed and update the dockerfile or the docker-compose.yml file"},
         {"role": "user", "content": prompt},
     ]
+
+
+def build_tool_help_definition():
+    """Build the help tool choices from the providers currently stored in SQLite."""
+    providers = list_tool_providers()
+    provider_schema = {
+        "type": "string",
+        "description": "Exact external tool provider that needs setup help.",
+    }
+    if providers:
+        provider_schema["enum"] = providers
+
+    return {
+        "type": "function",
+        "name": "tool_help",
+        "description": (
+            "Load setup and troubleshooting instructions for an external tool from "
+            "the local tool registry. Use this when the user asks how to set up a "
+            "tool or when another tool reports a credential or permission error. "
+            "After it returns, explain the instructions as simple ordered steps."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {"tool": provider_schema},
+            "required": ["tool"],
+            "additionalProperties": False,
+        },
+    }
 
 tools = [{
         "type": "function",
@@ -246,6 +277,20 @@ tools = [{
         },
         {
             "type": "function",
+            "name": "list_cloudflare_domains",
+            "description": (
+                "List active domains in the configured Cloudflare account that are "
+                "available for app deployment. Returns each domain with its Cloudflare "
+                "zone ID and account ID. This is a read-only operation."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
+        },
+        {
+            "type": "function",
             "name": "explore_repository",
             "description": (
                 "Set an already cloned GitHub repository as the active repository path. "
@@ -280,10 +325,33 @@ tools = [{
                 "properties": {},
                 "additionalProperties": False,
             },
+        },
+        {
+            "type": "function",
+            "name": "create_cloudflare_tunnel",
+            "description": (
+                "Create a new Cloudflare tunnel for the specified tunnel name."
+                "and returns the tunnel details which you can then use the data returned to configure the tunnel and deploy your application. "
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                "tunnel_name": {
+                    "type": "string",
+                    "description": (
+                        "the tunnel name you want keep it similar to your application name so that it is easy to identify the tunnel and use it for your application"
+                    ),
+                }
+            },
+            "required": ["repo_name"],
+                "additionalProperties": False,
+            },
         }
     
     
     ]
+
+tools.append(build_tool_help_definition())
 
 
 
@@ -302,10 +370,20 @@ def request_reply(input_messages, client, model, warning_token_limit=None,tools=
     # print("------------------\nRequested reply for this inputs: \n",input_messages,"\n------------------","")
     try:
         
+        available_tools = tools
+        if custom_available_tools is None:
+            # Refresh the SQLite-backed enum in case providers changed after import.
+            available_tools = [tool for tool in tools if tool["name"] != "tool_help"]
+            available_tools.append(build_tool_help_definition())
+
         response = client.responses.create(
             model=model,
             input=input_messages,
-            tools=tools if custom_available_tools is None else custom_available_tools
+            tools=(
+                available_tools
+                if custom_available_tools is None
+                else custom_available_tools
+            ),
         )
 
     except Exception as e:

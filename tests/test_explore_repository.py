@@ -4,7 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from openAI_manager.check_for_tool_calling import check_for_tool_calling
+from openAI_manager.tool_calling_logic import check_for_tool_calling
 from openAI_manager.request_llm_reply import tools
 from tools.destop_tools.run_shell import run_shell_command
 from tools.github.explore_repository import explore_repository

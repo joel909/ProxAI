@@ -55,6 +55,8 @@ class ToolCredentialTable(Base):
     provider: Mapped[str] = mapped_column(nullable=False, unique=True)
     api_key: Mapped[Optional[str]] = mapped_column(nullable=True)
     required_token: Mapped[Optional[str]] = mapped_column(nullable=True)
+    config_json: Mapped[Optional[str]] = mapped_column(nullable=True)
+    setup_instructions: Mapped[Optional[str]] = mapped_column(nullable=True)
     enabled: Mapped[bool] = mapped_column(default=True)
 
 engine = create_engine("sqlite:///assistant.db")
@@ -72,6 +74,19 @@ def migrate_tool_credentials_schema():
             connection.execute(
                 text("ALTER TABLE tool_credentials ADD COLUMN required_token VARCHAR")
             )
+    if "config_json" not in column_names:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE tool_credentials ADD COLUMN config_json VARCHAR")
+            )
+    if "setup_instructions" not in column_names:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE tool_credentials "
+                    "ADD COLUMN setup_instructions VARCHAR"
+                )
+            )
 
 
 migrate_tool_credentials_schema()
@@ -81,18 +96,45 @@ DEFAULT_TOOL_CREDENTIALS = [
         "provider": "firecrawl",
         "api_key": None,
         "required_token": "API Key",
+        "setup_instructions": (
+            "Open the Firecrawl dashboard, create an API key, then run /setup-tools "
+            "and choose Firecrawl. Paste only the API key. ProxAI validates it with "
+            "a small search before saving it. If validation fails, check that the key "
+            "was copied completely, is active, has available usage, and that the "
+            "machine can connect to Firecrawl."
+        ),
         "enabled": True,
     },
     {
         "provider":"github",
         "api_key": None,
         "required_token": "PAT token",
+        "setup_instructions": (
+            "Open GitHub Settings > Developer settings > Personal access tokens > "
+            "Tokens (classic), then generate a personal access token (classic). Give "
+            "it a descriptive name, choose an expiration, and enable the repo scope "
+            "if ProxAI must access private repositories. Run /setup-tools, choose "
+            "GitHub, and paste only the token. If validation fails, verify that the "
+            "token is not expired or revoked and that it has the required repository "
+            "access. Create one at https://github.com/settings/personal-access-tokens/new."
+        ),
         "enabled": True,
     },
     {
         "provider":"Cloudflare",
         "api_key": None,
         "required_token": "API token",
+        "setup_instructions": (
+            "Open Cloudflare Profile > API Tokens and create a custom API token. Add "
+            "Account > Cloudflare Tunnel > Edit and Zone > DNS > Edit, and assign the "
+            "intended account and zone resources. Run /setup-tools, choose Cloudflare, "
+            "and paste only the raw token without 'Bearer' or 'Authorization:'. ProxAI "
+            "checks authentication plus Tunnel and DNS permissions. If no zone is "
+            "available, enter the 32-character Account ID and deployment will use the "
+            "default domain. Permission errors mean the token's account/zone resources "
+            "or Tunnel/DNS Edit permissions need to be corrected. Connection or HTTP "
+            "errors should be retried after checking network access and token status."
+        ),
         "enabled": True,
     }
 ]
@@ -101,28 +143,38 @@ DEFAULT_TOOL_CREDENTIALS = [
 def prefill_tool_credentials():
     # Creates default external tool credential rows once, so users can fill keys later.
     with Session(engine) as session:
-        existing_providers = set(session.scalars(select(ToolCredentialTable.provider)))
+        existing_providers = {
+            provider.casefold()
+            for provider in session.scalars(select(ToolCredentialTable.provider))
+        }
         missing_credentials = [
             credential for credential in DEFAULT_TOOL_CREDENTIALS
-            if credential["provider"] not in existing_providers
+            if credential["provider"].casefold() not in existing_providers
         ]
         session.add_all(
             ToolCredentialTable(
                 provider=credential["provider"],
                 api_key=credential["api_key"],
                 required_token=credential["required_token"],
+                setup_instructions=credential["setup_instructions"],
                 enabled=credential["enabled"],
             )
             for credential in missing_credentials
         )
 
         required_tokens = {
-            credential["provider"]: credential["required_token"]
+            credential["provider"].casefold(): credential["required_token"]
+            for credential in DEFAULT_TOOL_CREDENTIALS
+        }
+        setup_instructions = {
+            credential["provider"].casefold(): credential["setup_instructions"]
             for credential in DEFAULT_TOOL_CREDENTIALS
         }
         for credential in session.scalars(select(ToolCredentialTable)):
-            if credential.provider in required_tokens:
-                credential.required_token = required_tokens[credential.provider]
+            provider_key = credential.provider.casefold()
+            if provider_key in required_tokens:
+                credential.required_token = required_tokens[provider_key]
+                credential.setup_instructions = setup_instructions[provider_key]
 
         session.commit()
 

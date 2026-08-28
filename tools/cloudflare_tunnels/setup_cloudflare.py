@@ -1,7 +1,8 @@
 import subprocess
+import re
 from pathlib import Path
 
-from inputs import CYAN, GREEN, Inputs, RED, RESET, select_menu
+from inputs import CYAN, GREEN, Inputs, RED, RESET, YELLOW, select_menu
 from storage.tool_credentials import save_tool_api_key
 
 from .validate_cloudflare_token import (
@@ -62,6 +63,18 @@ def _select_item(items, prompt):
     return items[labels.index(selected_label)]
 
 
+def _request_cloudflare_account_id():
+    while True:
+        account_id = Inputs.getInput(
+            f"{CYAN}Enter your 32-character Cloudflare Account ID{RESET}",
+            result_type=str,
+        ).strip()
+        if re.fullmatch(r"[0-9a-fA-F]{32}", account_id):
+            return account_id.lower()
+
+        print(f"{RED}Cloudflare Account ID must contain 32 hexadecimal characters.{RESET}")
+
+
 def setup_cloudflare_token():
     """Validate, explain failures, and save a working Cloudflare token."""
     api_token = Inputs.getInput(
@@ -82,22 +95,32 @@ def setup_cloudflare_token():
             "error": error,
         }
 
-    account = _select_item(
-        validation["accounts"],
-        "Select a Cloudflare account",
-    )
-    account_zones = [
-        zone
-        for zone in validation["zones"]
-        if zone["account_id"] == account["id"]
-    ]
-    zone = _select_item(account_zones, "Select a Cloudflare zone")
+    use_default_domain = not validation["zones"]
+    if use_default_domain:
+        print(
+            f"{YELLOW}No Cloudflare domain found. Enter your Account ID to "
+            f"continue. Deployment will use its default domain.{RESET}"
+        )
+        account_id = _request_cloudflare_account_id()
+        account = {"id": account_id, "name": "Cloudflare account"}
+        zone = None
+    else:
+        account = _select_item(
+            validation["accounts"],
+            "Select a Cloudflare account",
+        )
+        account_zones = [
+            zone
+            for zone in validation["zones"]
+            if zone["account_id"] == account["id"]
+        ]
+        zone = _select_item(account_zones, "Select a Cloudflare zone")
 
     edit_validation = validate_cloudflare_edit_permissions(
         api_token,
         account["id"],
-        zone["id"],
-        zone["name"],
+        zone["id"] if zone else None,
+        zone["name"] if zone else None,
     )
     if not edit_validation["valid"]:
         stage = edit_validation["stage"].replace("_", " ")
@@ -111,19 +134,36 @@ def setup_cloudflare_token():
             "error": error,
         }
 
-    save_tool_api_key("Cloudflare", api_token)
-    message = (
-        f'Cloudflare API token saved for account {account["name"]} '
-        f'and zone {zone["name"]}.'
+    save_tool_api_key(
+        "Cloudflare",
+        api_token,
+        config={
+            "account_id": account["id"],
+            "account_name": account["name"],
+            "zone_id": zone["id"] if zone else None,
+            "zone_name": zone["name"] if zone else None,
+            "use_default_domain": use_default_domain,
+        },
     )
+    if use_default_domain:
+        message = (
+            f'Cloudflare API token saved for account {account["id"]}. '
+            "Deployment will use its default domain."
+        )
+    else:
+        message = (
+            f'Cloudflare API token saved for account {account["name"]} '
+            f'and zone {zone["name"]}.'
+        )
     print(f"{GREEN}{message}{RESET}")
     return {
         "success": True,
         "message": message,
         "account_id": account["id"],
         "account_name": account["name"],
-        "zone_id": zone["id"],
-        "zone_name": zone["name"],
+        "zone_id": zone["id"] if zone else None,
+        "zone_name": zone["name"] if zone else None,
+        "use_default_domain": use_default_domain,
         "permissions": {
             **validation["permissions"],
             **edit_validation["permissions"],

@@ -73,11 +73,20 @@ def validate_cloudflare_token(api_token):
         stage = "zone_access"
         zones_response = list(client.zones.list())
         if not zones_response:
-            return _failure(
-                stage,
-                "Token is active but no zones are accessible. Add Zone > DNS > Edit "
-                "and assign at least one zone resource.",
-            )
+            return {
+                "valid": True,
+                "stage": "complete",
+                "error": None,
+                "account_id": None,
+                "accounts": [],
+                "zones": [],
+                "use_default_domain": True,
+                "permissions": {
+                    "zone_read": True,
+                    "dns_read": None,
+                    "tunnel_read": None,
+                },
+            }
 
         accounts_by_id = {}
         zones = []
@@ -125,6 +134,7 @@ def validate_cloudflare_token(api_token):
             "account_id": accounts[0]["id"] if len(accounts) == 1 else None,
             "accounts": accounts,
             "zones": zones,
+            "use_default_domain": False,
             "permissions": {
                 "zone_read": True,
                 "dns_read": True,
@@ -168,7 +178,12 @@ def validate_cloudflare_token(api_token):
         spinner.stop()
 
 
-def validate_cloudflare_edit_permissions(api_token, account_id, zone_id, zone_name):
+def validate_cloudflare_edit_permissions(
+    api_token,
+    account_id,
+    zone_id=None,
+    zone_name=None,
+):
     """Prove Tunnel and DNS Edit access using temporary resources and cleanup."""
     spinner = LoadingSpinner("Testing Cloudflare Edit permissions...")
     client = Cloudflare(api_token=api_token.strip())
@@ -208,6 +223,17 @@ def validate_cloudflare_edit_permissions(api_token, account_id, zone_id, zone_na
                 f"Temporary Tunnel {tunnel_name} was created but could not be deleted. "
                 f"Delete Tunnel ID {tunnel.id} manually. Error: {type(exc).__name__}.",
             )
+
+        if zone_id is None:
+            return {
+                "valid": True,
+                "stage": "complete",
+                "error": None,
+                "permissions": {
+                    "tunnel_edit": True,
+                    "dns_edit": None,
+                },
+            }
 
         record_name = f"_proxai-permission-test-{suffix}.{zone_name}"
         try:

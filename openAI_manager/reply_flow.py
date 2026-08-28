@@ -1,4 +1,4 @@
-from openAI_manager.check_for_tool_calling import check_for_tool_calling
+from openAI_manager.tool_calling_logic import check_for_tool_calling
 from tools.search_tools import FireCrawlTool
 from tools.destop_tools import DesktopTools
 from .request_llm_reply import build_input_messages, request_reply
