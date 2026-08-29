@@ -13,7 +13,7 @@ def get_manifest_generator_source():
         return f"Unable to read {MANIFEST_GENERATOR_FILE}: {exc}"
 
 
-def build_input_messages(prompt):
+def build_input_messages(prompt, system_configuration=None):
     generator_source = get_manifest_generator_source()
 
     return [

@@ -23,6 +23,7 @@ def request_reply_with_tool_loop(
     on_tool_call=None,
     build_input_messages_function=build_input_messages,
     custom_available_tools=None,
+    build_docker_file_agent_runner=None,
 ):
     search_tool = FireCrawlTool()
     desktop_tool = DesktopTools()
@@ -67,6 +68,7 @@ def request_reply_with_tool_loop(
                 search_tool,
                 desktop_tool,
                 chat_history_manager,
+                build_docker_file_agent_runner,
             )
             history_output = redact_sensitive_tool_output(tool_call.name, tool_output)
             chat_history_manager.store_tool_call_history(

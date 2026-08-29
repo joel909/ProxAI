@@ -1,7 +1,9 @@
 import re
-from .tool_calling_logic import check_for_tool_calling
+
 from openai import OpenAI
+
 from .reply_flow import request_reply_with_tool_loop
+from .tool_calling_logic import check_for_tool_calling
 
 GPT_MODEL_PATTERN = re.compile(r"^gpt-5")
 DEFAULT_WARNING_TOKEN_LIMIT = 100000
@@ -29,7 +31,24 @@ class OpenAIManager:
             if GPT_MODEL_PATTERN.match(model.id)
         )
 
-    def request_llm_reply(self, prompt,system_configuration, on_tool_call=None,custom_build_input_messages_function=None,custom_available_tools=None):
+    def request_llm_reply(
+        self,
+        prompt,
+        system_configuration=None,
+        on_tool_call=None,
+        custom_build_input_messages_function=None,
+        custom_available_tools=None,
+    ):
+        def run_docker_agent(repo_name):
+            from tools.docker.create_docker_config_file import build_docker_file_agent
+
+            return build_docker_file_agent(
+                repo_name,
+                self,
+                system_configuration=system_configuration,
+                on_tool_call=on_tool_call,
+            )
+
         if custom_build_input_messages_function is None and custom_available_tools is None:
             return request_reply_with_tool_loop(
                 prompt,
@@ -39,17 +58,20 @@ class OpenAIManager:
                 self.chat_history_manager,
                 self.warning_token_limit,
                 on_tool_call,
+                build_docker_file_agent_runner=run_docker_agent,
             )
         else:
             return request_reply_with_tool_loop(
                 prompt,
                 self.client,
                 self.model,
+                system_configuration,
                 self.chat_history_manager,
                 self.warning_token_limit,
                 on_tool_call,
                 build_input_messages_function=custom_build_input_messages_function,
                 custom_available_tools=custom_available_tools,
+                build_docker_file_agent_runner=run_docker_agent,
             )
 
     def evaluate_llm_reply(self, llm_reply):

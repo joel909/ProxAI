@@ -64,6 +64,7 @@ class UpdateCloudflareTunnelTests(unittest.TestCase):
         self.assertEqual(result["url"], "https://random123.example.com")
         self.assertEqual(dns_create.call_args.kwargs["zone_id"], "zone-123")
         self.assertEqual(dns_create.call_args.kwargs["name"], "random123.example.com")
+        self.assertEqual(dns_create.call_args.kwargs["ttl"], 1)
         ingress = tunnel_update.call_args.kwargs["config"]["ingress"]
         self.assertEqual(ingress[0]["hostname"], "random123.example.com")
         self.assertEqual(ingress[0]["service"], "http://app:8080")

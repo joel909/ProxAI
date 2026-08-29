@@ -25,7 +25,13 @@ def parse_tool_arguments(tool_call):
     return json.loads(tool_call.arguments)
 
 
-def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_manager):
+def check_for_tool_calling(
+    tool_call,
+    search_tool,
+    desktop_tool,
+    chat_history_manager,
+    build_docker_file_agent_runner=None,
+):
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
     MANIFEST_GENERATOR_DIR = PROJECT_ROOT / "setup_flow"
     try:
@@ -110,6 +116,11 @@ def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_m
             return explore_repository(arguments["repo_name"])
         if tool_call.name == "unset_repository":
             return unset_repository()
+        if tool_call.name == "build_docker_file_agent":
+            arguments = parse_tool_arguments(tool_call)
+            if build_docker_file_agent_runner is None:
+                return {"error": "Docker agent runner is not available."}
+            return build_docker_file_agent_runner(arguments["repo_name"])
         if tool_call.name == "create_cloudflare_tunnel":
             arguments = parse_tool_arguments(tool_call)
             from tools.cloudflare_tunnels.create_cloudflare_tunnel import create_cloudflare_tunnel

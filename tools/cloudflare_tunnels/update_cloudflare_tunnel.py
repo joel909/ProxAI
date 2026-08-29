@@ -52,6 +52,7 @@ def setup_cloudflare_tunnel_and_domain(tunnel_id, service_url):
         name=host_name,
         content=f"{tunnel_id}.cfargotunnel.com",
         proxied=True,
+        ttl=1,
     )
     return {
         "success": True,
