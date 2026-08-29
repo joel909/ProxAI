@@ -1,8 +1,7 @@
 import subprocess
-import re
 from pathlib import Path
 
-from inputs import CYAN, GREEN, Inputs, RED, RESET, YELLOW, select_menu
+from inputs import CYAN, GREEN, Inputs, RED, RESET, select_menu
 from storage.tool_credentials import save_tool_api_key
 
 from .validate_cloudflare_token import (
@@ -63,18 +62,6 @@ def _select_item(items, prompt):
     return items[labels.index(selected_label)]
 
 
-def _request_cloudflare_account_id():
-    while True:
-        account_id = Inputs.getInput(
-            f"{CYAN}Enter your 32-character Cloudflare Account ID{RESET}",
-            result_type=str,
-        ).strip()
-        if re.fullmatch(r"[0-9a-fA-F]{32}", account_id):
-            return account_id.lower()
-
-        print(f"{RED}Cloudflare Account ID must contain 32 hexadecimal characters.{RESET}")
-
-
 def setup_cloudflare_token():
     """Validate, explain failures, and save a working Cloudflare token."""
     api_token = Inputs.getInput(
@@ -95,26 +82,29 @@ def setup_cloudflare_token():
             "error": error,
         }
 
-    use_default_domain = not validation["zones"]
-    if use_default_domain:
-        print(
-            f"{YELLOW}No Cloudflare domain found. Enter your Account ID to "
-            f"continue. Deployment will use its default domain.{RESET}"
+    if not validation["zones"]:
+        error = (
+            "No active Cloudflare domain was found. You need an active domain "
+            "to use Cloudflare Tunnels."
         )
-        account_id = _request_cloudflare_account_id()
-        account = {"id": account_id, "name": "Cloudflare account"}
-        zone = None
-    else:
-        account = _select_item(
-            validation["accounts"],
-            "Select a Cloudflare account",
-        )
-        account_zones = [
-            zone
-            for zone in validation["zones"]
-            if zone["account_id"] == account["id"]
-        ]
-        zone = _select_item(account_zones, "Select a Cloudflare zone")
+        print(f"{RED}Cloudflare setup failed: {error}{RESET}")
+        return {
+            "success": False,
+            "stage": "domain_access",
+            "error": error,
+        }
+
+    use_default_domain = False
+    account = _select_item(
+        validation["accounts"],
+        "Select a Cloudflare account",
+    )
+    account_zones = [
+        zone
+        for zone in validation["zones"]
+        if zone["account_id"] == account["id"]
+    ]
+    zone = _select_item(account_zones, "Select a Cloudflare zone")
 
     edit_validation = validate_cloudflare_edit_permissions(
         api_token,

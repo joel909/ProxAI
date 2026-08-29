@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from openAI_manager.tool_calling_logic import check_for_tool_calling
-from openAI_manager.request_llm_reply import tools
+from openAI_manager.request_llm_reply_with_tools_list import tools
 from tools.cloudflare_tunnels import list_cloudflare_domains as domain_tool
 
 
@@ -112,7 +112,7 @@ class ListCloudflareDomainsTests(unittest.TestCase):
         )
 
         with mock.patch(
-            "openAI_manager.check_for_tool_calling.list_cloudflare_domains",
+            "openAI_manager.tool_calling_logic.list_cloudflare_domains",
             return_value={"success": True, "domains": []},
         ) as list_domains:
             result = check_for_tool_calling(

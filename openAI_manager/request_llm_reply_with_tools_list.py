@@ -330,20 +330,54 @@ tools = [{
             "type": "function",
             "name": "create_cloudflare_tunnel",
             "description": (
-                "Create a new Cloudflare tunnel for the specified tunnel name."
-                "and returns the tunnel details which you can then use the data returned to configure the tunnel and deploy your application. "
+                "Create a remotely managed Cloudflare tunnel. Returns its tunnel ID, "
+                "name, and secret connector token for configuring cloudflared. Treat the "
+                "returned token as sensitive and never show it to the user or log it."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                "tunnel_name": {
-                    "type": "string",
-                    "description": (
-                        "the tunnel name you want keep it similar to your application name so that it is easy to identify the tunnel and use it for your application"
-                    ),
-                }
+                    "tunnel_name": {
+                        "type": "string",
+                        "description": (
+                            "A recognizable tunnel name, typically based on the "
+                            "application name."
+                        ),
+                    }
+                },
+                "required": ["tunnel_name"],
+                "additionalProperties": False,
             },
-            "required": ["repo_name"],
+        },
+        {
+            "type": "function",
+            "name": "update_cloudflare_tunnel_and_domain",
+            "description": (
+                "Configure an existing remotely managed Cloudflare tunnel, generate a "
+                "random hostname under the saved Cloudflare domain, and create the DNS "
+                "record that routes the hostname to the tunnel. Returns the generated "
+                "public hostname and routing details."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "tunnel_id": {
+                        "type": "string",
+                        "description": (
+                            "The tunnel ID returned by create_cloudflare_tunnel."
+                        ),
+                    },
+                    "service_url": {
+                        "type": "string",
+                        "description": (
+                            "The origin service URL that Cloudflare Tunnel forwards requests "
+                            "to. Include the protocol, hostname, and port. For Docker Compose, "
+                            "use the Compose service name reachable from the cloudflared "
+                            "container, for example 'http://app:3000'."
+                        ),
+                    }
+                },
+                "required": ["tunnel_id", "service_url"],
                 "additionalProperties": False,
             },
         }

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from openAI_manager.tool_calling_logic import check_for_tool_calling
-from openAI_manager.request_llm_reply import build_tool_help_definition, tools
+from openAI_manager.request_llm_reply_with_tools_list import build_tool_help_definition, tools
 from storage import DEFAULT_TOOL_CREDENTIALS
 from storage.tool_credentials import get_tool_help
 
@@ -19,7 +19,7 @@ class ToolHelpTests(unittest.TestCase):
 
     def test_tool_choices_come_from_sqlite(self):
         with mock.patch(
-            "openAI_manager.request_llm_reply.list_tool_providers",
+            "openAI_manager.request_llm_reply_with_tools_list.list_tool_providers",
             return_value=["alpha", "beta"],
         ):
             definition = build_tool_help_definition()
@@ -45,7 +45,7 @@ class ToolHelpTests(unittest.TestCase):
         expected = {"tool": "github", "setup_instructions": "steps"}
 
         with mock.patch(
-            "openAI_manager.check_for_tool_calling.get_tool_help",
+            "openAI_manager.tool_calling_logic.get_tool_help",
             return_value=expected,
         ) as help_lookup:
             result = check_for_tool_calling(

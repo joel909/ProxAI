@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from openAI_manager.tool_calling_logic import check_for_tool_calling
-from openAI_manager.request_llm_reply import tools
+from openAI_manager.request_llm_reply_with_tools_list import tools
 from tools.destop_tools.run_shell import run_shell_command
 from tools.github.explore_repository import explore_repository
 from tools.github.unset_repository import unset_repository
@@ -71,7 +71,7 @@ class ExploreRepositoryTests(unittest.TestCase):
         )
 
         with mock.patch(
-            "openAI_manager.check_for_tool_calling.explore_repository",
+            "openAI_manager.tool_calling_logic.explore_repository",
             return_value={"repo_name": "demo"},
         ) as explore:
             result = check_for_tool_calling(
@@ -88,7 +88,7 @@ class ExploreRepositoryTests(unittest.TestCase):
         tool_call = SimpleNamespace(name="unset_repository", arguments="{}")
 
         with mock.patch(
-            "openAI_manager.check_for_tool_calling.unset_repository",
+            "openAI_manager.tool_calling_logic.unset_repository",
             return_value={"success": True},
         ) as unset:
             result = check_for_tool_calling(

@@ -7,6 +7,7 @@ from tools.github.unset_repository import unset_repository
 from tools.docker import list_docker_containers
 from tools.cloudflare_tunnels.list_cloudflare_domains import list_cloudflare_domains
 from storage.tool_credentials import get_tool_api_key, get_tool_help
+from tools.cloudflare_tunnels.update_cloudflare_tunnel import setup_cloudflare_tunnel_and_domain
 
 from .reply_flow_utils import read_memory
 import json
@@ -113,6 +114,12 @@ def check_for_tool_calling(tool_call, search_tool, desktop_tool,  chat_history_m
             arguments = parse_tool_arguments(tool_call)
             from tools.cloudflare_tunnels.create_cloudflare_tunnel import create_cloudflare_tunnel
             return create_cloudflare_tunnel(arguments["tunnel_name"])
+        if tool_call.name == "update_cloudflare_tunnel_and_domain":
+            arguments = parse_tool_arguments(tool_call)
+            return setup_cloudflare_tunnel_and_domain(
+                tunnel_id=arguments["tunnel_id"],
+                service_url=arguments["service_url"],
+            )
         
         return {"error": f"Unsupported tool call: {tool_call.name}"}
     except Exception as e:

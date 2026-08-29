@@ -1,7 +1,7 @@
 from openAI_manager.tool_calling_logic import check_for_tool_calling
 from tools.search_tools import FireCrawlTool
 from tools.destop_tools import DesktopTools
-from .request_llm_reply import build_input_messages, request_reply
+from .request_llm_reply_with_tools_list import build_input_messages, request_reply
 from .reply_flow_utils import (
     add_response_output,
     build_tool_output,
@@ -68,9 +68,25 @@ def request_reply_with_tool_loop(
                 desktop_tool,
                 chat_history_manager,
             )
-            chat_history_manager.store_tool_call_history(tool_call.name, tool_call.call_id, tool_output, "tool_response")
+            history_output = redact_sensitive_tool_output(tool_call.name, tool_output)
+            chat_history_manager.store_tool_call_history(
+                tool_call.name,
+                tool_call.call_id,
+                history_output,
+                "tool_response",
+            )
             input_messages.append(build_tool_output(tool_call, tool_output))
             notify_tool_finished(on_tool_call, tool_call.name)
+
+
+def redact_sensitive_tool_output(tool_name, tool_output):
+    if tool_name != "create_cloudflare_tunnel" or not isinstance(tool_output, dict):
+        return tool_output
+
+    safe_output = dict(tool_output)
+    if "token" in safe_output:
+        safe_output["token"] = "<redacted>"
+    return safe_output
 
 
 def notify_tool_finished(on_tool_call, tool_name):

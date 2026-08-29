@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from openAI_manager.tool_calling_logic import check_for_tool_calling
-from openAI_manager.request_llm_reply import tools
+from openAI_manager.request_llm_reply_with_tools_list import tools
 from tools.docker.list_docker_containers import list_docker_containers
 
 
@@ -39,7 +39,7 @@ class ListDockerContainersTests(unittest.TestCase):
         tool_call = SimpleNamespace(name="list_docker_containers", arguments="{}")
 
         with mock.patch(
-            "openAI_manager.check_for_tool_calling.list_docker_containers",
+            "openAI_manager.tool_calling_logic.list_docker_containers",
             return_value="docker output",
         ) as list_containers:
             result = check_for_tool_calling(

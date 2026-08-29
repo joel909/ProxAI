@@ -71,22 +71,17 @@ def validate_cloudflare_token(api_token):
             )
 
         stage = "zone_access"
-        zones_response = list(client.zones.list())
+        zones_response = [
+            zone
+            for zone in client.zones.list()
+            if getattr(zone, "status", None) == "active"
+        ]
         if not zones_response:
-            return {
-                "valid": True,
-                "stage": "complete",
-                "error": None,
-                "account_id": None,
-                "accounts": [],
-                "zones": [],
-                "use_default_domain": True,
-                "permissions": {
-                    "zone_read": True,
-                    "dns_read": None,
-                    "tunnel_read": None,
-                },
-            }
+            return _failure(
+                "domain_access",
+                "No active Cloudflare domain was found. You need an active domain "
+                "to use Cloudflare Tunnels.",
+            )
 
         accounts_by_id = {}
         zones = []
@@ -109,6 +104,7 @@ def validate_cloudflare_token(api_token):
                     "id": zone.id,
                     "name": zone.name,
                     "account_id": account_id,
+                    "status": zone.status,
                 }
             )
 

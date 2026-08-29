@@ -15,6 +15,7 @@ def make_client(*, verify=None, zones=None, records=None, tunnels=None):
     zone = SimpleNamespace(
         id="zone-123",
         name="example.com",
+        status="active",
         account=SimpleNamespace(id="account-123", name="Personal"),
     )
     return SimpleNamespace(
@@ -63,19 +64,37 @@ class CloudflareTokenTests(unittest.TestCase):
             per_page=5,
         )
 
-    def test_validator_accepts_an_account_without_zones(self):
+    def test_validator_rejects_an_account_without_active_zones(self):
         list_zones = mock.Mock(return_value=[])
         client = make_client(zones=list_zones)
         with mock.patch.object(validator, "Cloudflare", return_value=client):
             result = validator.validate_cloudflare_token("test-token")
 
-        self.assertTrue(result["valid"])
-        self.assertTrue(result["use_default_domain"])
+        self.assertFalse(result["valid"])
+        self.assertEqual(result["stage"], "domain_access")
+        self.assertIn("No active Cloudflare domain", result["error"])
         self.assertEqual(result["accounts"], [])
         self.assertEqual(result["zones"], [])
-        self.assertIsNone(result["permissions"]["dns_read"])
         client.dns.records.list.assert_not_called()
         client.zero_trust.tunnels.cloudflared.list.assert_not_called()
+
+    def test_validator_rejects_inactive_zones(self):
+        inactive_zone = SimpleNamespace(
+            id="zone-123",
+            name="example.com",
+            status="pending",
+            account=SimpleNamespace(id="account-123", name="Personal"),
+        )
+        client = make_client(
+            zones=mock.Mock(return_value=[inactive_zone]),
+        )
+
+        with mock.patch.object(validator, "Cloudflare", return_value=client):
+            result = validator.validate_cloudflare_token("test-token")
+
+        self.assertFalse(result["valid"])
+        self.assertEqual(result["stage"], "domain_access")
+        self.assertIn("No active Cloudflare domain", result["error"])
 
     def test_validator_reports_authentication_failure(self):
         verify = mock.Mock(
@@ -264,7 +283,7 @@ class CloudflareTokenTests(unittest.TestCase):
             },
         )
 
-    def test_setup_requests_account_id_when_no_zones_exist(self):
+    def test_setup_fails_when_no_active_domain_exists(self):
         validation = {
             "valid": True,
             "stage": "complete",
@@ -272,28 +291,17 @@ class CloudflareTokenTests(unittest.TestCase):
             "account_id": None,
             "accounts": [],
             "zones": [],
-            "use_default_domain": True,
             "permissions": {
                 "zone_read": True,
                 "dns_read": None,
                 "tunnel_read": None,
             },
         }
-        edit_validation = {
-            "valid": True,
-            "stage": "complete",
-            "error": None,
-            "permissions": {
-                "tunnel_edit": True,
-                "dns_edit": None,
-            },
-        }
-        account_id = "a" * 32
         with (
             mock.patch.object(
                 setup_cloudflare.Inputs,
                 "getInput",
-                side_effect=["token", account_id],
+                return_value="token",
             ),
             mock.patch.object(
                 setup_cloudflare,
@@ -303,34 +311,19 @@ class CloudflareTokenTests(unittest.TestCase):
             mock.patch.object(
                 setup_cloudflare,
                 "validate_cloudflare_edit_permissions",
-                return_value=edit_validation,
             ) as validate_edit,
             mock.patch.object(setup_cloudflare, "save_tool_api_key") as save,
             mock.patch("sys.stdout", new=io.StringIO()) as stdout,
         ):
             result = setup_cloudflare.setup_cloudflare_token()
 
-        self.assertTrue(result["success"])
-        self.assertTrue(result["use_default_domain"])
-        self.assertIsNone(result["zone_id"])
-        self.assertIn("Enter your Account ID", stdout.getvalue())
-        validate_edit.assert_called_once_with(
-            "token",
-            account_id,
-            None,
-            None,
-        )
-        save.assert_called_once_with(
-            "Cloudflare",
-            "token",
-            config={
-                "account_id": account_id,
-                "account_name": "Cloudflare account",
-                "zone_id": None,
-                "zone_name": None,
-                "use_default_domain": True,
-            },
-        )
+        self.assertFalse(result["success"])
+        self.assertEqual(result["stage"], "domain_access")
+        self.assertIn("No active Cloudflare domain", result["error"])
+        self.assertIn("Cloudflare setup failed", stdout.getvalue())
+        self.assertIn("need an active domain", stdout.getvalue())
+        validate_edit.assert_not_called()
+        save.assert_not_called()
 
     def test_setup_rejects_read_only_tunnel_token(self):
         validation = {
