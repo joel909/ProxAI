@@ -8,6 +8,26 @@ let busy = false;
 const runningTools = new Map();
 marked.setOptions({gfm: true, breaks: true});
 
+function preferredConversationId() {
+  const fromUrl = new URLSearchParams(location.search).get("conversation");
+  return fromUrl || localStorage.getItem("proxai.activeConversationId");
+}
+
+function rememberConversation(id) {
+  if (!id) return;
+  localStorage.setItem("proxai.activeConversationId", id);
+  const url = new URL(location.href);
+  url.searchParams.set("conversation", id);
+  history.replaceState({}, "", url);
+}
+
+function forgetConversation() {
+  localStorage.removeItem("proxai.activeConversationId");
+  const url = new URL(location.href);
+  url.searchParams.delete("conversation");
+  history.replaceState({}, "", url);
+}
+
 const overviewStep = $("overviewStep");
 const warningStep = $("warningStep");
 $("onboardingNext").addEventListener("click", () => {
@@ -105,7 +125,15 @@ function finishPending() {
 
 function handleEvent(data) {
   if (data.type === "session") {
-    currentConversationId = data.conversation_id;
+    const preferred = preferredConversationId();
+    currentConversationId = preferred || data.conversation_id;
+    if (preferred && preferred !== data.conversation_id) {
+      setBusy(true);
+      socket.send(JSON.stringify({
+        type: "select_conversation",
+        conversation_id: preferred,
+      }));
+    }
     loadConversations();
   } else if (data.type === "thinking") {
     $("activeToolStack")?.removeAttribute("id");
@@ -115,12 +143,14 @@ function handleEvent(data) {
     addTool(data.name, data.status);
   } else if (data.type === "response") {
     currentConversationId = data.conversation_id;
+    rememberConversation(currentConversationId);
     finishPending();
     addMessage("assistant", data.content);
     setBusy(false);
     loadConversations();
   } else if (data.type === "history") {
     currentConversationId = data.conversation_id;
+    rememberConversation(currentConversationId);
     renderHistory(data.messages);
     setBusy(false);
     loadConversations();
@@ -128,6 +158,11 @@ function handleEvent(data) {
     finishPending();
     addMessage("assistant", `**Request failed:** ${data.message}`);
     setBusy(false);
+  } else if (data.type === "history_missing") {
+    forgetConversation();
+    currentConversationId = null;
+    setBusy(false);
+    loadConversations();
   } else if (data.type === "reset_complete") {
     currentConversationId = data.conversation_id;
     setBusy(false);
@@ -146,7 +181,11 @@ function submitPrompt(value) {
   const prompt = (value ?? promptInput.value).trim();
   if (!prompt || busy || socket?.readyState !== WebSocket.OPEN) return;
   addMessage("user", prompt);
-  socket.send(JSON.stringify({type: "prompt", prompt}));
+  socket.send(JSON.stringify({
+    type: "prompt",
+    prompt,
+    conversation_id: currentConversationId,
+  }));
   promptInput.value = "";
   promptInput.style.height = "auto";
   setBusy(true);
@@ -215,6 +254,7 @@ function selectConversation(id, button) {
   if (busy || id === currentConversationId || socket?.readyState !== WebSocket.OPEN) return;
   document.querySelectorAll(".chat-item").forEach(item => item.classList.remove("active"));
   button.classList.add("active", "loading");
+  currentConversationId = id;
   setBusy(true);
   socket.send(JSON.stringify({type: "select_conversation", conversation_id: id}));
   if (innerWidth <= 760) closeSidebar();
@@ -250,6 +290,7 @@ scrim.addEventListener("click", closeSidebar);
 $("newChat").addEventListener("click", () => {
   if (busy || socket?.readyState !== WebSocket.OPEN) return;
   currentConversationId = null;
+  forgetConversation();
   messages.innerHTML = '<div id="welcome" class="welcome"><div class="welcome-logo">P</div><h1>How can I help you today?</h1><p>Start a fresh task whenever you are ready.</p></div>';
   runningTools.clear();
   socket.send(JSON.stringify({type: "reset"}));

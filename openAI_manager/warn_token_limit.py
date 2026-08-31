@@ -1,4 +1,4 @@
-from inputs.terminal_ui import select_menu
+from inputs.terminal_ui import WRITE_CONFIRM_YES, confirm_user_permission
 
 
 RED = "\033[31m"
@@ -22,9 +22,16 @@ def warn_token_limit(estimated_tokens, limit):
         f"({over_by} over the limit).{RESET}"
     )
 
-    selected_option = select_menu(
-        ["Yes", "No"],
-        "Continue with this request?",
+    permission = confirm_user_permission(
+        action="Token usage warning",
+        details={
+            "Configured limit": limit,
+            "Estimated tokens": estimated_tokens,
+            "Over limit by": over_by,
+        },
+        yes_label="Yes, continue",
+        no_label="No, cancel",
+        prompt="Continue with this request?",
     )
 
-    return selected_option == "Yes"
+    return permission == WRITE_CONFIRM_YES

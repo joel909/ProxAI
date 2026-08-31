@@ -174,7 +174,10 @@ async def chat(websocket: WebSocket):
                 messages = get_conversation_messages(conversation_id)
                 if not messages:
                     await websocket.send_json(
-                        {"type": "error", "message": "Conversation was not found."}
+                        {
+                            "type": "history_missing",
+                            "conversation_id": conversation_id,
+                        }
                     )
                     continue
                 manager, provider = _create_manager(conversation_id)
@@ -192,6 +195,27 @@ async def chat(websocket: WebSocket):
             prompt = str(payload.get("prompt", "")).strip()
             if not prompt:
                 continue
+            requested_conversation_id = str(
+                payload.get("conversation_id", "")
+            ).strip()
+            if (
+                requested_conversation_id
+                and requested_conversation_id
+                != manager.chat_history_manager.conversation_id
+            ):
+                previous_messages = get_conversation_messages(
+                    requested_conversation_id
+                )
+                if previous_messages:
+                    manager, provider = _create_manager(requested_conversation_id)
+                else:
+                    await websocket.send_json(
+                        {
+                            "type": "history_missing",
+                            "conversation_id": requested_conversation_id,
+                        }
+                    )
+                    continue
             await websocket.send_json({"type": "thinking"})
 
             def on_tool_call(tool_name, event="started"):
