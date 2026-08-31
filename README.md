@@ -15,9 +15,9 @@ doing. The terminal application is the core of ProxAI, while the web dashboard
 makes those capabilities available from a browser without repeating the full
 local setup or entering another OpenAI API key.
 
-ProxAI is a work-in-progress system for connecting LLMs to real development and
-deployment workflows. It is intended to make maintaining and updating my
-projects faster, especially when I am away from my primary development machine.
+ProxAI is a complete system for connecting LLMs to real development and
+deployment workflows. It makes maintaining and updating my projects faster,
+especially when I am away from my primary development machine.
 
 ## What I am building
 
