@@ -60,6 +60,18 @@ PROXAI_ALLOWED_EMAILS=you@example.com \
 ./setup_flow/run_dashboard.sh
 ```
 
+For a detached host deployment (including Cloudflare Tunnel origins), run:
+
+```bash
+PROXAI_REQUIRE_CLOUDFLARE_ACCESS=false \
+./setup_flow/run_dashboard_detached.sh
+```
+
+The detached launcher connects standard output and error to
+`/tmp/proxai-dashboard.log`. This keeps terminal-oriented tool output, such as
+loading spinners, from writing to a closed deployment pipe. Running
+`run_dashboard.sh` directly remains unchanged for interactive use.
+
 The dashboard has a per-session **Auto-approve tools** switch. When enabled,
 command and file-write confirmations for prompts from that browser session are
 approved automatically. Leave it disabled for untrusted or exploratory prompts.

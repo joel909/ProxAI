@@ -12,4 +12,6 @@ if [[ ! -x "${UVICORN}" ]]; then
 fi
 
 cd "${PROJECT_DIR}"
-exec "${UVICORN}" dashboard.app:app --host 127.0.0.1 --port "${PROXAI_DASHBOARD_PORT:-7681}"
+exec "${UVICORN}" dashboard.app:app \
+    --host "${PROXAI_DASHBOARD_HOST:-127.0.0.1}" \
+    --port "${PROXAI_DASHBOARD_PORT:-7681}"
