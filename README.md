@@ -1,14 +1,30 @@
 # ProxAI
 
-I started ProxAI because I wanted to learn AI by building something practical, not just reading about it.
+## Why I started ProxAI
 
-ProxAI is my work-in-progress project for integrating LLMs with my own tools and workflows so I can make everyday tasks faster, smarter, and more useful. The focus is on building a real system around AI, not just a generic chatbot or a vague "AI agent" demo.
+I build vibe-coded projects, but even a small change can turn into a long manual
+process. I have to open my laptop, connect to the server over SSH, inspect and
+update the code, search the web for unfamiliar errors, understand the possible
+solutions, and then carefully explain the entire problem to an AI before it can
+help me.
+
+I started ProxAI to remove that friction. I wanted an assistant that already
+runs where my projects run, can inspect the environment, use the tools it needs,
+research problems, change code, deploy applications, and show me what it is
+doing. The terminal application is the core of ProxAI, while the web dashboard
+makes those capabilities available from a browser without repeating the full
+local setup or entering another OpenAI API key.
+
+ProxAI is a work-in-progress system for connecting LLMs to real development and
+deployment workflows. It is intended to make maintaining and updating my
+projects faster, especially when I am away from my primary development machine.
 
 ## What I am building
 
-- A place to experiment with AI-powered tooling
-- A setup for connecting models to my own processes
-- A foundation for turning ideas into usable workflows
+- An assistant that can inspect and modify projects on the machine where they run
+- Tools for researching errors, working with repositories, and running commands
+- Automated Docker and Cloudflare Tunnel deployment workflows
+- A browser interface for using the terminal application remotely
 
 ## Status
 
