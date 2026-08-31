@@ -2,29 +2,16 @@
 
 ## Why I started ProxAI
 
-I build vibe-coded projects, but even a small change can turn into a long manual
-process. I have to open my laptop, connect to the server over SSH, inspect and
-update the code, search the web for unfamiliar errors, understand the possible
-solutions, and then carefully explain the entire problem to an AI before it can
-help me.
+I built projects and even for small chnages the process is kinda big like
+, I have to open my laptop, connect to the server over SSH, inspect and
+update the code, search for errors, understand the it again after 3 months of writing the code after which i give it to ai and we brain strom together
 
-I started ProxAI to remove that friction. I wanted an assistant that already
-runs where my projects run, can inspect the environment, use the tools it needs,
-research problems, change code, deploy applications, and show me what it is
-doing. The terminal application is the core of ProxAI, while the web dashboard
-makes those capabilities available from a browser without repeating the full
-local setup or entering another OpenAI API key.
+I made ProxAI to remove that friction. I wanted an assistant that already
+runs where my projects run, and it knows my projects has its memory and an assistant that can deploy it as well and has its own domain which it can deploy and update the live preview of the project
 
 ProxAI is a complete system for connecting LLMs to real development and
 deployment workflows. It makes maintaining and updating my projects faster,
-especially when I am away from my primary development machine.
-
-## What I am building
-
-- An assistant that can inspect and modify projects on the machine where they run
-- Tools for researching errors, working with repositories, and running commands
-- Automated Docker and Cloudflare Tunnel deployment workflows
-- A browser interface for using the terminal application remotely
+especially when I am away from my  laptop cuz of the web interface.
 
 ## Requirements
 
@@ -45,14 +32,14 @@ git clone https://github.com/joel909/ProxAI.git
 cd ProxAI
 ```
 
-The recommended setup command creates `.venv`, installs the dependencies, and
+create `.venv`, and install the dependencies, whcih creates a
 generates `manifest.json` for the current machine:
 
 ```bash
 ./setup_flow/setup.sh
 ```
 
-The equivalent manual setup is:
+or for python based setup run the below
 
 ```bash
 python3 -m venv .venv
@@ -76,7 +63,7 @@ Start the terminal application:
 ./setup_flow/run.sh
 ```
 
-You can also run the same application directly:
+python alternative
 
 ```bash
 .venv/bin/python main.py
@@ -86,12 +73,12 @@ On the first run:
 
 1. Select **Start setup**.
 2. Select **OpenAI** as the provider.
-3. Paste your OpenAI API key.
+3. Paste your OpenAI api key.
 4. Select the model and complete the remaining prompts.
 5. Start ProxAI again after the setup finishes.
 
-This only completes the basic model-provider setup. External tools have their
-own credentials and must be configured separately.
+This only completes the basic model-provider setup. tools have their
+own credentials and you need to get thier api keys and configure them.
 
 ## Configure individual tools
 
@@ -159,10 +146,7 @@ easier interface for normal conversations and deployments.
 
 ## Open the web dashboard
 
-The dashboard uses the provider and tool credentials configured through the
-terminal. A dashboard visitor does not need to enter a separate OpenAI API key.
-It provides formatted chat history, shows tool calls while they run, and allows
-existing conversations to be reopened and continued.
+once all the model and the provider etc.. are configured and once all the tools are done setup you can use the below web dashbaord isntead of accessing it from the terminal just use the website for now it deploys on local host u can use cf tunnels and use it publicly
 
 Start it from the repository directory:
 
@@ -173,7 +157,7 @@ Start it from the repository directory:
 Then open <http://127.0.0.1:7681> in a browser on the same machine.
 
 If ProxAI is running on a remote virtual machine, keep the dashboard bound to
-loopback and create an SSH tunnel from your computer:
+loopback or js do cf tunnels and create an SSH tunnel from your computer:
 
 ```bash
 ssh -L 7681:127.0.0.1:7681 ubuntu@VM_PUBLIC_IP
@@ -206,12 +190,9 @@ hostname with Cloudflare Access, then require the Access assertion in ProxAI:
 ```bash
 PROXAI_DASHBOARD_HOST=127.0.0.1 \
 PROXAI_REQUIRE_CLOUDFLARE_ACCESS=true \
-PROXAI_ALLOWED_EMAILS=you@example.com \
 ./setup_flow/run_dashboard_detached.sh
 ```
 
-`PROXAI_ALLOWED_EMAILS` is optional and accepts the email addresses allowed by
-the dashboard's Cloudflare Access check.
 
 The web dashboard always approves command and file-write confirmations so that
 non-interactive deployments do not fail with `EOF when reading a line`. Treat
@@ -219,15 +200,3 @@ dashboard access as terminal access: expose it only to trusted users, protect it
 with Cloudflare Access, use narrowly scoped credentials, and run it on an
 isolated machine without sensitive files or repositories.
 
-## Troubleshooting
-
-- **`No module named 'openai'`:** activate `.venv` and run
-  `python -m pip install -r requirements.txt`.
-- **The setup screen appears again:** finish **Start setup**, enter a valid API
-  key, and then restart the terminal application.
-- **The dashboard refuses the connection:** make sure
-  `./setup_flow/run_dashboard.sh` is still running and listening on port `7681`.
-- **A detached dashboard does not start:** inspect
-  `/tmp/proxai-dashboard.log`.
-- **Tool setup fails:** run `/setup-tools` again and review the permission or
-  validation message for that provider.
