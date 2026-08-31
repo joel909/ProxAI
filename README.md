@@ -26,11 +26,6 @@ projects faster, especially when I am away from my primary development machine.
 - Automated Docker and Cloudflare Tunnel deployment workflows
 - A browser interface for using the terminal application remotely
 
-## Status
-
-- Early work in progress
-- Still being shaped as I learn and build
-
 ## Requirements
 
 - Linux with Python 3.10 or newer
