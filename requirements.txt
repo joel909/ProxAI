@@ -3,3 +3,5 @@ firecrawl-py
 tiktoken
 sqlalchemy
 cloudflare
+fastapi
+uvicorn[standard]

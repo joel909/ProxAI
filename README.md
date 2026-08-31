@@ -39,3 +39,27 @@ the setup command.
 ## Notes
 
 More details will be added as the project grows.
+
+## Web dashboard
+
+The dashboard provides a formatted chat interface and displays tool calls while
+they run. Install dependencies with `./setup_flow/setup.sh`, then start it with:
+
+```bash
+./setup_flow/run_dashboard.sh
+```
+
+Open `http://127.0.0.1:7681`. The server deliberately listens on loopback only.
+For Internet access, publish that address through Cloudflare Tunnel and protect
+the hostname with Cloudflare Access. For remote deployments, require Access and
+optionally restrict the authenticated email:
+
+```bash
+PROXAI_REQUIRE_CLOUDFLARE_ACCESS=true \
+PROXAI_ALLOWED_EMAILS=you@example.com \
+./setup_flow/run_dashboard.sh
+```
+
+The dashboard has a per-session **Auto-approve tools** switch. When enabled,
+command and file-write confirmations for prompts from that browser session are
+approved automatically. Leave it disabled for untrusted or exploratory prompts.

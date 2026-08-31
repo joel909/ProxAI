@@ -182,9 +182,9 @@ def prefill_tool_credentials():
 prefill_tool_credentials()
 
 class ChatHistoryManager:
-    def __init__(self):
+    def __init__(self, conversation_id=None):
         self.engine = engine
-        self.conversation_id = self.generate_conversation_id()
+        self.conversation_id = conversation_id or self.generate_conversation_id()
     def generate_conversation_id(self):
         characters = string.ascii_letters + string.digits
         random_string = ''.join(random.choices(characters, k=30))

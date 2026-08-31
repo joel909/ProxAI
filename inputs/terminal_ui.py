@@ -1,4 +1,5 @@
 import base64
+import contextvars
 import itertools
 import os
 import re
@@ -38,6 +39,10 @@ ANSI_CODE_RE = re.compile(r"\033\[[0-9;]*m")
 LAST_CODE_BLOCKS = []
 WRITE_CONFIRM_YES = "yes"
 WRITE_CONFIRM_DENY = "deny"
+PERMISSION_HANDLER = contextvars.ContextVar(
+    "proxai_permission_handler",
+    default=None,
+)
 
 
 class LoadingSpinner:
@@ -164,6 +169,16 @@ def confirm_user_permission(
     if info_actions is None:
         info_actions = []
 
+    permission_handler = PERMISSION_HANDLER.get()
+    if permission_handler is not None:
+        return permission_handler(
+            action=action,
+            details=details,
+            yes_label=yes_label,
+            no_label=no_label,
+            prompt=prompt,
+        )
+
     while True:
         print(f"{BOLD}{YELLOW}{action}{RESET}")
         for label, value in details.items():
@@ -184,6 +199,15 @@ def confirm_user_permission(
             continue
 
         return WRITE_CONFIRM_DENY
+
+
+def set_permission_handler(handler):
+    """Set a request-local permission handler and return its reset token."""
+    return PERMISSION_HANDLER.set(handler)
+
+
+def reset_permission_handler(token):
+    PERMISSION_HANDLER.reset(token)
 
 
 def confirm_write_to_file(file_path, content):
