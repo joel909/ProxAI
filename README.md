@@ -72,6 +72,6 @@ The detached launcher connects standard output and error to
 loading spinners, from writing to a closed deployment pipe. Running
 `run_dashboard.sh` directly remains unchanged for interactive use.
 
-The dashboard has a per-session **Auto-approve tools** switch. When enabled,
-command and file-write confirmations for prompts from that browser session are
-approved automatically. Leave it disabled for untrusted or exploratory prompts.
+The web dashboard always auto-approves command and file-write confirmations.
+Only expose it to trusted users, and run it on an isolated machine with scoped
+credentials and no sensitive files.

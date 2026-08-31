@@ -71,12 +71,12 @@
           <div class="action-menu-wrap">
             <button id="toolsButton" class="round-button" type="button" data-tooltip="Tools and permissions" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
             <div id="toolsMenu" class="tools-menu" role="dialog" aria-label="Tool permissions">
-              <div class="menu-title"><strong>Tool permissions</strong><small>Applied to each prompt</small></div>
-              <label class="switch-row"><span><strong>Auto-approve tools</strong><small>Run commands and file writes without asking</small></span><input id="autoApprove" type="checkbox"><i></i></label>
+              <div class="menu-title"><strong>Tool permissions</strong><small>Applied to every web prompt</small></div>
+              <label class="switch-row"><span><strong>Auto-approve tools</strong><small>Commands and file writes run without another confirmation</small></span><input id="autoApprove" type="checkbox" checked disabled><i></i></label>
               <div class="danger-note"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 2.9 1.8 17a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 2.9a2 2 0 0 0-3.4 0Z"/></svg><span>Only enable this for prompts you trust.</span></div>
             </div>
           </div>
-          <div id="approvalBadge" class="approval-badge"><i></i>Auto-approve on</div><span class="composer-spacer"></span>
+          <div id="approvalBadge" class="approval-badge visible"><i></i>Auto-approve on</div><span class="composer-spacer"></span>
           <button id="sendButton" class="send-button" type="submit" aria-label="Send message"><svg viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></svg></button>
         </div>
       </form>

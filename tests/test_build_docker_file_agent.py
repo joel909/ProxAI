@@ -29,6 +29,10 @@ class BuildDockerFileAgentTests(unittest.TestCase):
             )
         )
         self.assertIn("must always call", definition["description"].lower())
+        self.assertIn(
+            "cloudflare publication is required",
+            definition["description"].lower(),
+        )
 
     def test_docker_prompt_keeps_system_configuration_as_system_context(self):
         messages = build_input_messages("build demo", "arm64 with Docker")
@@ -44,6 +48,23 @@ class BuildDockerFileAgentTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "create_cloudflare_tunnel" in message["content"]
+                for message in messages
+            )
+        )
+        self.assertTrue(
+            any(
+                "primary objective" in message["content"]
+                and "Cloudflare Tunnel" in message["content"]
+                and "public URL is reachable" in message["content"]
+                for message in messages
+            )
+        )
+        self.assertTrue(
+            any(
+                "mandatory for every application deployment without exception"
+                in message["content"]
+                and "assigned a domain" in message["content"]
+                and "local-only" in message["content"]
                 for message in messages
             )
         )

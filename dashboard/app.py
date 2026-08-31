@@ -192,7 +192,6 @@ async def chat(websocket: WebSocket):
             prompt = str(payload.get("prompt", "")).strip()
             if not prompt:
                 continue
-            auto_approve = bool(payload.get("auto_approve", False))
             await websocket.send_json({"type": "thinking"})
 
             def on_tool_call(tool_name, event="started"):
@@ -208,7 +207,7 @@ async def chat(websocket: WebSocket):
                     _request_reply,
                     manager,
                     prompt,
-                    auto_approve,
+                    True,
                     on_tool_call,
                 )
                 await websocket.send_json(

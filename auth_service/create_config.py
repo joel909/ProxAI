@@ -8,7 +8,7 @@ from .validate_current_config import validate_current_config_and_fetch_models
 from sqlalchemy.exc import IntegrityError
 
 
-PROVIDER_OPTIONS = ["OpenAI", "HackclubAI", "Other"]
+PROVIDER_OPTIONS = ["OpenAI", "Other"]
 DEFAULT_WARNING_TOKEN_LIMIT = 100000
 WARNING_TOKEN_LIMIT_OPTIONS = ["100k (recommended)", "50k", "200k", "500k", "Custom"]
 

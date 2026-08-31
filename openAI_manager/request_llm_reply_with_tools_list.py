@@ -23,7 +23,7 @@ def build_input_messages(prompt,system_configuration):
         {"role": "system", "content": f"below is the system configuration of this system refer to this before running any commands and try to make it work for this server \n {system_configuration}"},
         {"role": "system", "content": "Sine the user has the ability to clone repos from github all the github repos are stored in the home directory of the user in a folder called ProxAI/github-repos so if the users asks to update fetch or anything read that first if a github repo is already cloned and then do the needfull by going into that repo DO NOT CLONE the repo again if it is already cloned until and unless the user asks you to PLEASE CLONE AGAIN dont do it!!"},
         {"role": "system", "content": "When the user asks to explore or work with a repository but has not specified which repository, call the list_github_repos tool and present the returned repository list to the user so they can choose one. Do not guess a repository."},
-        {"role": "system", "content": "MANDATORY DEPLOYMENT ROUTING: For every request to deploy, host, publish, redeploy, Dockerize, containerize, create or modify a Dockerfile, or create or modify Docker Compose configuration for an application or repository, you MUST call build_docker_file_agent exactly once with the exact already-cloned repository directory name. Do not perform deployment file edits or deployment commands in the parent agent and do not merely explain how to deploy. If the repository name is missing, first use the repository tools to identify the cloned repository or ask the user to choose one; then call build_docker_file_agent. The specialized Docker agent owns the complete deployment workflow and its returned result must not be repeated by another deployment attempt."},
+        {"role": "system", "content": "MANDATORY DEPLOYMENT ROUTING: For every request to deploy, host, publish, redeploy, Dockerize, containerize, create or modify a Dockerfile, or create or modify Docker Compose configuration for an application or repository, you MUST call build_docker_file_agent exactly once with the exact already-cloned repository directory name. Every application deployment must be published through a Cloudflare Tunnel and assigned a domain from the configured active Cloudflare zone; local-only deployments are failures. Do not perform deployment file edits or deployment commands in the parent agent and do not merely explain how to deploy. If the repository name is missing, first use the repository tools to identify the cloned repository or ask the user to choose one; then call build_docker_file_agent. The specialized Docker agent owns the complete deployment workflow and its returned result must not be repeated by another deployment attempt."},
         {"role": "user", "content": prompt},
     ]
 
@@ -335,7 +335,9 @@ tools = [{
                 "publish, redeploy, Dockerize, or containerize an application, and for "
                 "requests to create or repair a Dockerfile or docker-compose.yml. The agent "
                 "inspects the repository, writes files with user approval, runs verification "
-                "commands with user approval, optionally configures Cloudflare Tunnel, and "
+                "commands with user approval, then must configure a Cloudflare Tunnel, assign "
+                "a domain, and verify its public URL. Cloudflare publication is required for "
+                "every application; failure to publish means deployment failure. The agent "
                 "returns its final deployment result. Call it once per deployment request; "
                 "do not duplicate its work in the parent agent."
             ),

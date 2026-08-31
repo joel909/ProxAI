@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const messages = $("messages"), form = $("promptForm"), promptInput = $("prompt");
-const sendButton = $("sendButton"), autoApprove = $("autoApprove");
+const sendButton = $("sendButton");
 const toolsButton = $("toolsButton"), toolsMenu = $("toolsMenu");
 const sidebar = $("sidebar"), scrim = $("scrim");
 let socket, reconnectTimer, currentConversationId = null;
@@ -146,7 +146,7 @@ function submitPrompt(value) {
   const prompt = (value ?? promptInput.value).trim();
   if (!prompt || busy || socket?.readyState !== WebSocket.OPEN) return;
   addMessage("user", prompt);
-  socket.send(JSON.stringify({type: "prompt", prompt, auto_approve: autoApprove.checked}));
+  socket.send(JSON.stringify({type: "prompt", prompt}));
   promptInput.value = "";
   promptInput.style.height = "auto";
   setBusy(true);
@@ -237,7 +237,6 @@ toolsButton.addEventListener("click", event => {
 });
 toolsMenu.addEventListener("click", event => event.stopPropagation());
 document.addEventListener("click", () => { toolsMenu.classList.remove("open"); toolsButton.setAttribute("aria-expanded", "false"); });
-autoApprove.addEventListener("change", () => $("approvalBadge").classList.toggle("visible", autoApprove.checked));
 
 function openSidebar() {
   if (innerWidth <= 760) { sidebar.classList.add("mobile-open"); scrim.classList.add("visible"); }
